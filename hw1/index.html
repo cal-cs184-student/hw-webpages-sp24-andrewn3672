@@ -112,6 +112,33 @@
             <img src="sample16nearest.png">
             <h3>Sample Rate = 16, Bilinear</h3>
             <img src="sample16bilinear.png">
+
+            <h3>Sample Rate = 1, Nearest</h3>
+            <img src="21n.png">
+            <h3>Sample Rate = 1, Bilinear</h3>
+            <img src="21b.png">
+            <h3>Sample Rate = 16, Nearest</h3>
+            <img src="216n.png">
+            <h3>Sample Rate = 16, Bilinear</h3>
+            <img src="216b.png">
+
+            <h3>Sample Rate = 1, Nearest</h3>
+            <img src="31n.png">
+            <h3>Sample Rate = 1, Bilinear</h3>
+            <img src="31b.png">
+            <h3>Sample Rate = 16, Nearest</h3>
+            <img src="316n.png">
+            <h3>Sample Rate = 16, Bilinear</h3>
+            <img src="316b.png">
+
+            <h3>Sample Rate = 1, Nearest</h3>
+            <img src="41n.png">
+            <h3>Sample Rate = 1, Bilinear</h3>
+            <img src="41b.png">
+            <h3>Sample Rate = 16, Nearest</h3>
+            <img src="416n.png">
+            <h3>Sample Rate = 16, Bilinear</h3>
+            <img src="416b.png">
             <p>
                 Nearest neighbor sampling tends to snap onto specific colors. If our interpolated uv-coordinate lands directly between the centers of 4 uniquely colored texels in the texture map, nearest neighbor sampling will always snap to one of the texels. Bilinear interpolation would instead take the equally-weighted average of all four texels. As a result, nearest neighbor sampling is pretty bad at getting the shape of things like curved lines in the texture map. You can see how the longitude line in the nearest neighbor sampling case snaps to either blue or white (even when the sampling rate is 16). On the other hand, the curved longitude line has a gradual gradient from white to blue according to the curve in the bilinear interpolation case. 
             </p>
