@@ -14,33 +14,55 @@
             text-align: center;
         }
         img {
-            max-width: 50%;
+            max-width: 75%;
             height: auto;
             margin: 0 auto;
             display: block;
             margin-left: auto;
             margin-right: auto;
         }
-        #scroll-to-top {
-            display: none;
+        nav {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            width: 37%;
+            top: 0;
+            z-index: 9999;
         }
+        nav ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            background-color: #007bff;
+            padding: 0px 0;
+        }
+        nav ul li {
+            margin-right: 20px;
+            display: inline;
+        }
+        nav ul li a {
+            text-decoration: none;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        nav ul li a:hover {
+            background-color: #0056b3;
+        }
+        header {
+            padding: 50px 20px 20px; /* Adjust padding to prevent content from being hidden behind the navbar */
+        }
+        
     </style>
 </head>
 <body>
     <header>
         <h1>CS184 HW1 Write Up</h1>
-        <a href="https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw1/index.html"> https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw1/index.html </a>
+        <a href="https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw1/index.html">https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw1/index.html</a>
         <nav>
             <ul>
+                <li class="button"><a href="#">Top</a></li>
                 <li><a href="#section1">Task 1</a></li>
                 <li><a href="#section2">Task 2</a></li>
                 <li><a href="#section3">Task 3</a></li>
@@ -151,25 +173,5 @@
             </p>
         </section>
     </main>
-
-    <button onclick="scrollToTop()" id="scroll-to-top">Scroll to Top</button>
-
-    <script>
-        function scrollToTop() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }
-
-        window.onscroll = function() {
-            var scrollToTopButton = document.getElementById('scroll-to-top');
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-                scrollToTopButton.style.display = 'block';
-            } else {
-                scrollToTopButton.style.display = 'none';
-            }
-        };
-    </script>
 </body>
 </html>
