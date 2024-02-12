@@ -51,6 +51,7 @@
         <a href="https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw1/index.html">https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw1/index.html</a>
         <nav>
             <ul>
+                <li><a href="#overview">Overview</a></li>
                 <li><a href="#section1">Task 1</a></li>
                 <li><a href="#section2">Task 2</a></li>
                 <li><a href="#section3">Task 3</a></li>
@@ -62,6 +63,13 @@
     </header>
 
     <main>
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>
+                In this assignment, we implemented rasterizer functions to display images. The main goal was to implement techniques and algorithms to reduce aliasing and generate clean images. We utilized supersampling, different methods of pixel sampling, and different methods of level sampling. Through out the project, we learned the granular details on how each technique worked and how to effectively implement them. Not only were we striving to produce better pictures, but we also learned about the different trade offs between all of the methods. Supersampling at high rates for example lead to less aliasing, but decreased the performance of the program as we had to sample more points. This becomes evident when there are small delays when increasing the rate. The most interesting thing we learned about the project was the utilization of mipmaps and levels. It was interesting to see the utilization of mipmaps directly and to really understand how blurring images can actually make the image look better. When comparing using zero levels and linear levels, it was clear to see the blurring difference, and how it improved image quality overall. One thing we learned to be more aware of is the need to scale images appropiately when working with different resolutions and mapping textures. One of the biggest struggles of the project overall was typing. The difference between doubles and floats made a huge difference in how images were generated or to prevent segfaults. Because the sampling can get so granular, we found that doubles were needed to maintain accurrate representation of the points and floats would not be able to. This applies to int and sign_t as well. Overall, we were able to explore the tradeoffs between all of the methods and learned the innerworkings of each method clearly.
+            </p>
+        </section>
+
         <section id="section1">
             <h2>Task 1</h2>
             <p>
@@ -71,6 +79,7 @@
                 Our algorithm is no worse than one that checks each sample within the bounding box of the triangle because we define our sample space to be the max and mins of the X values  for the horizontal bound and the max and mins of the Y values for the vertical bound from the triangle points. This ensures that only the largest and smallest x and y positions of the triangles are sampled meaning that we are at most sampling points within the bounding box of the triangle. For example, if we know the smallest X of a point on the triangle is 2 and the largest X from another point is 5, we would only need to sample from a horizontal range of 2-5. The same logic applies to the Y axis where we only need to consider the largest and smallest Y of the points on the triangle.
             </p>  
             <img src="sample1.png" class="solo-image">
+            <p>In this image, you can see clear aliasing at the thin parts of the triangle. The triangle isn't even connected!</p>
         </section>
 
         <section id="section2">
@@ -100,6 +109,7 @@
                     <figcaption>Sample Rate 16</figcaption>
                 </figure>
             </div>
+            <p>As we increase the sampling rate, you can see the edge of the triangle blur more and more. This leads to a slow gradient connecting the triangle while providing a clear image that reduces the jaggies.</p>
         </section>
 
         <section id="section3">
@@ -123,6 +133,9 @@
                     <img src="barycircle.png">
                 </figure>
             </div>
+            <p>
+                In the images above, we can see clear gradients between the colors as a result of barycentric coordinates. This allows for the weights of each point to accurately represent their color based on the vertices of the triangle.
+            </p>
         </section>
 
         <section id="section5">
@@ -205,6 +218,9 @@
                     <figcaption>Sample Rate 16, Bilinear</figcaption>
                 </figure>
             </div>
+            <p>
+                In the images, you can see that bilinear provides a smoother gradient as opposed to nearest. This is more apparent in the first example.
+            </p>
             <p>
                 Nearest neighbor sampling tends to snap onto specific colors. If our interpolated uv-coordinate lands directly between the centers of 4 uniquely colored texels in the texture map, nearest neighbor sampling will always snap to one of the texels. Bilinear interpolation would instead take the equally-weighted average of all four texels. As a result, nearest neighbor sampling is pretty bad at getting the shape of things like curved lines in the texture map. You can see how the longitude line in the nearest neighbor sampling case snaps to either blue or white (even when the sampling rate is 16). On the other hand, the curved longitude line has a gradual gradient from white to blue according to the curve in the bilinear interpolation case. 
             </p>
