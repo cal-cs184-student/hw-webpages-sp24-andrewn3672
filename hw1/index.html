@@ -69,7 +69,7 @@
             background-color: #0056b3;
         }
         header {
-            padding: 50px 20px 20px; /* Adjust padding to prevent content from being hidden behind the navbar */
+            padding: 50px 20px 20px;
         }
         figure{
             display: inline-block;
@@ -251,6 +251,28 @@
 	    <p>
 	    Using mipmap levels uses more memory since it requires you to store all the mipmaps. However, because the sizes of the levels correspond to a geometrically decaying sequence, the total memory is bounded by a constant times the original texture's size. Supersampling takes considerably longer since you need to sample more times from the texture for each pixel, but it usually has the best results when it comes to antialiasing. Because mipmaps are conservative when they choose the mipmap level to sample from (i.e., they choose the level according the max stretch factor, meaning that the smaller stretch factor will be sampled from an overblurred mipmap), they end up sometimes overblurring. In terms of texel sampling, nearest requires less computation than bilinear but aliases considerably more since it samples by snapping onto the nearest texel instead of taking a smooth weighted average over the surrounding texels.
 	    </p>
+
+        <div class="image-container">
+            <figure>
+                <img src="dogzn.png">
+                <figcaption>Zero Level, Nearest</figcaption>
+            </figure>
+            <figure>
+                <img src="dogzb.png">
+                <figcaption>Zero Level, Bilinear</figcaption>
+            </figure>
+            <figure>
+                <img src="dognn.png">
+                <figcaption>Nearest Level, Nearest</figcaption>
+            </figure>
+            <figure>
+                <img src="dognb.png">
+                <figcaption>Nearest Level, Bilinear</figcaption>
+            </figure>
+        </div>
+        <p>
+            The image is being zoomed onto the top of the dogs nose. Between zero leveling and nearest leveling, it is clear that nearest leveling blurs the image. Between the sampling methods, bilinear sampling has more gradients within its coloring. This difference is more obvious when comparing the sampling methods with nearest level.
+        </p>
         </section>
     </main>
 </body>
