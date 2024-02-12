@@ -236,6 +236,11 @@
 	    Using mipmap levels uses more memory since it requires you to store all the mipmaps. However, because the sizes of the levels correspond to a geometrically decaying sequence, the total memory is bounded by a constant times the original texture's size. Supersampling takes considerably longer since you need to sample more times from the texture for each pixel, but it usually has the best results when it comes to antialiasing. Because mipmaps are conservative when they choose the mipmap level to sample from (i.e., they choose the level according the max stretch factor, meaning that the smaller stretch factor will be sampled from an overblurred mipmap), they end up sometimes overblurring. In terms of texel sampling, nearest requires less computation than bilinear but aliases considerably more since it samples by snapping onto the nearest texel instead of taking a smooth weighted average over the surrounding texels.
 	    </p>
 
+        <img src="dog.png" class="solo-image">
+        <p>
+            We will be using my dog as a reference. He is a good boy.
+        </p>
+
         <div class="image-container">
             <figure>
                 <img src="dogzn.png">
