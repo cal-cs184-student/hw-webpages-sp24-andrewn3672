@@ -1,7 +1,278 @@
 <html>
-	<head>
-	</head>
-	<body>
-		Homework 2 index.html here
-	</body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>184 HW2</title>
+    <style>
+        h1 {
+            text-align: center;
+        }
+        h2 {
+            text-align: center;
+        }
+        h3 {
+            text-align: center;
+        }
+        .solo-image {
+            max-width: 45%; 
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .image-container img {
+            max-width: 100%; 
+       
+            margin: 10px; 
+        }
+        .image-container figcaption {
+            text-align: center;
+            width: 100%; 
+        }
+        .image-container figure {
+            display: inline-block;
+            max-width: 45%; 
+            margin: 10px;
+        }
+        figure{
+            display: inline-block;
+        }
+                
+    </style>
+</head>
+<body>
+    <header>
+        <h1>CS184 Homework 2: Mesh Edit</h1>
+        <h2>Andres Avella and Andrew Nguyen</h2>
+        <a href="https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw2/index.html">https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw2/index.html</a>
+        <nav>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#section1">Task 1</a></li>
+                <li><a href="#section2">Task 2</a></li>
+                <li><a href="#section3">Task 3</a></li>
+                <li><a href="#section4">Task 4</a></li>
+                <li><a href="#section5">Task 5</a></li>
+                <li><a href="#section6">Task 6</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>
+                In this assignment, we implemented rasterizer functions to display images. The main goal was to implement techniques and algorithms to reduce aliasing and generate clean images. We utilized supersampling, different methods of pixel sampling, and different methods of level sampling. Through out the project, we learned the granular details on how each technique worked and how to effectively implement them. Not only were we striving to produce better pictures, but we also learned about the different trade offs between all of the methods. Supersampling at high rates for example lead to less aliasing, but decreased the performance of the program as we had to sample more points. This becomes evident when there are small delays when increasing the rate. The most interesting thing we learned about the project was the utilization of mipmaps and levels. It was interesting to see the utilization of mipmaps directly and to really understand how blurring images can actually make the image look better. When comparing using zero levels and linear levels, it was clear to see the blurring difference, and how it improved image quality overall. One thing we learned to be more aware of is the need to scale images appropiately when working with different resolutions and mapping textures. One of the biggest struggles of the project overall was typing. The difference between doubles and floats made a huge difference in how images were generated or to prevent segfaults. Because the sampling can get so granular, we found that doubles were needed to maintain accurrate representation of the points and floats would not be able to. This applies to int and sign_t as well. Overall, we were able to explore the tradeoffs between all of the methods and learned the innerworkings of each method clearly.
+            </p>
+        </section>
+
+        <section id="section1">
+            <h2>Task 1</h2>
+            <p>
+                We evaluate the Bezier curves using de Casteljau’s algorithm, which is a series of recursive linear interpolations between many control points. We parameterize the Bezier curve using a parameter “t” that ranges from 0 to 1. When t = 0, the Bezier curve intersects with the first control point, and when t = 1, the Bezier curve intersects with the final control point. To get points for intermediate values of “t”, we first take the linear interpolations between the outer set of control points. If we have 4 control points, the next level in the algorithm will have 3 control points, which come from the three possible linear interpolations coming from pairs of consecutive control points. Then, using these 3 control points, we perform 2 linear interpolations between the two possible pairs of consecutive points along the three. This gives us two points, which we linearly interpolate once again to get the point along the Bezier curve. All of the linear interpolations use the same value “t” to interpolate. In terms of how we implemented our algorithm, we returned the points if the size of points was 1. Otherwise, we would initilize a new vector, then iterate through the points from i=0 to points.size() - 1. This lets us lerp points[i] and points[i+1] and append it to our vector. Once we finish looping through the pairs of points, we return our vector.
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="task11.png">
+                    <figcaption>Level 0</figcaption>
+                </figure>
+                <figure>
+                    <img src="task12.png">
+                    <figcaption>Level 1</figcaption>
+                </figure>
+                <figure>
+                    <img src="task13.png">
+                    <figcaption>Level 2</figcaption>
+                </figure>
+                <figure>
+                    <img src="task14.png">
+                    <figcaption>Level 3</figcaption>
+                </figure>
+                <figure>
+                    <img src="task15.png">
+                    <figcaption>Level 4</figcaption>
+                </figure>
+                <figure>
+                    <img src="task16.png">
+                    <figcaption>Level 5</figcaption>
+                </figure>
+                <figure>
+                    <img src="task17.png">
+                    <figcaption>Level 6</figcaption>
+                </figure>
+                <figure>
+                    <img src="task18.png">
+                    <figcaption>Display Bezier curve</figcaption>
+                </figure>
+                <figure>
+                    <img src="task19.png">
+                    <figcaption>Moved control points around and made t value closer to 1</figcaption>
+                </figure>
+                <figure>
+                    <img src="task1gif.gif">
+                    <figcaption>Gif demonstrating changing the t values</figcaption>
+                </figure>
+            </div>
+            <p>We can see each level of De Casteljau's algorithm to create the Bezier curve.</p>
+        </section>
+
+        <section id="section2">
+            <h2>Task 2</h2>
+            <p>
+                To get Bezier surfaces, we take a grid of orthogonally-oriented Bezier curves. We are given a (n x n) grid of 3D control points and we want to find a point on the surface parameterized by (u, v), where u and v both range between 0 and 1. We treat each row in this grid as the set of control points for a Bezier curve. For each row, we find the point on the Bezier curve parameterized by u. This leaves us with n points that are coplanar in a plane orthogonal to the u-direction. We treat these n points as the control points for the final Bezier curve. We find the point on this final Bezier curve parameterized by v. This final point is the corresponding point on the Bezier surface parameterized by (u, v). In our algorithm, we define evaluateStep() by taking in the vector of 3D points and doing one step of the De Casteljau subdivision. In evaluate1D(), we take the vector of points, and iteratively call evaluateStep() on the points until we are left with one. Finally, in evaluate(), we iterate through the rows and call evaluate1D() on each row with u being the input to t, appending the final value to a new vector. With this final vector of points, we call evaulate1D() one final time with v as the input to t, resulting in the final point desired on the bezier surface. 
+            </p>
+
+            <div class="image-container">
+                <figure>
+                    <img src="task21.png">
+                    <figcaption>Side profile</figcaption>
+                </figure>
+                <figure>
+                    <img src="task22.png">
+                    <figcaption>Upper profile</figcaption>
+                </figure>
+            </div>
+            <p>These teapot images were generated utilizing De Casteljau’s algorithm to create Bezier surfaces.</p>
+        </section>
+
+        <section id="section3">
+            <h2>Task 3</h2>
+            <p>
+                For an initial vertex v0, there can be an arbitrary amount of surrounding triangles. We start with v0’s halfedge. If we iterate through the halfedges using h = h->next(), we will traverse the sides of one of the triangles that surrounds v0. As we traverse the halfedges, we collect the two vertices that make up the triangle we are traversing. We call the first one we traverse v1 and the second one v2. The vectors (v1 - v0) and (v2 - v0) correspond to the two sides of the triangle that intersect with v0. These two vectors lie in the plane occupied by the triangle. If we take the cross product (v1 - v0) x (v2 - v0), we will get the vector that is normal to the plane of the triangle. The length of this vector is equal to the parallelogram that is spanned by (v1 - v0) and (v2 - v0). The area of the triangle is therefore ½ times the area of this parallelogram. We take the cross product in that order (i.e., (v1 - v0) x (v2 - v0) instead of (v2 - v0) x (v1 - v0)) because the halfedges are oriented such that the direction of the normal to the triangle they surround can be found with the right-hand rule. We go from triangle to triangle around v0 by taking h = h->next()->next()->twin(). For each triangle, we add (½ * (v1 - v0) x (v2 - v0)) to the running area-weighted sum of normals. After we return back to the original halfedge of the first triangle, we stop iterating, divide the area-weighted sum of normals by its norm, and return it. This returned vector is equivalently the area-weighted average of the normals of the surrounding triangles.             
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="task34.png">
+                    <figcaption>With the wire frame, without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task35.png">
+                    <figcaption>With the wire frame, without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task31.png">
+                    <figcaption>With the wire frame, with normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task32.png">
+                    <figcaption>Without the wire frame, with normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task33.png">
+                    <figcaption>Incorrect implementation with the normal pointing the opposite way</figcaption>
+                </figure>
+            </div>
+            <p>
+                These images show the difference when we normalize the vertices and don't normalize the vertices. We also included what it looked like if you calculated the normals in the opposite direction for fun.
+            </p>
+        </section>
+
+        <section id="section4">
+            <h2>Task 4</h2>
+            <p>
+                In our implementation of edge flip, we started by first defining all of the elements of the current existing triangles based on the chosen edge. We will call one triangle abc and the second triangle cbd. The half edges of abc are retrieved from taking the halfedge of e0 (the inputted edge) and calling it bc. We then iterate through the halfedgeiter to label ca then ab. We can then get vertices for abc by getting vertex a from ab, vertex b from bc, and vertex c from ca. Finally, we can get the face for abc from bc. For cbd, we do it in the same way, but we get the twin of bc to get cb. We then get the half edges for bd and dc. Vertex d is taken from dc. Lastly, we get the face for cbd from cb. We do not need to get the edges for anything other than the original one we are flipping because that will be the only edge we will be “moving”.
+            </p>
+            <img class="solo-image" src="task4explain.png">
+            <p>
+                The above image is how we will be flipping the triangle. We will translate abc to be dab, and cbd to adc. This means ca, ab, bd, and dc will be nearly the same other than updating it’s next pointer. We first look to update the halfedges for the new triangle. To do this, we translate cb to turn into da. We update da by da->setNeighbors(ab, cb, d, e0, abc). We know in the new triangle, da points to ab, and our twin will still be cb which later becomes “ad” but is still the same object. We set the vertex as d since that is where this halfedge will come out of. We will also treat abc as dab, but will also just be the same object. We then update ab to point to bd and bd to point to da. We also make sure their respective face corresponds to abc and everything else is the same. The second triangle we be translated in the same way. We can then reference cb as ad. To update ad we do essentially the same thing by ad->setNeighbors(dc, da, a, e0, cbd). This makes it so our next halfedge is dc, we essentially keep the same twin which is da (bc), keep the same edge, and treat our original triangle of cbd but can view it as adc. We then update dc and ca to have the correct next (ca and ad respectively) and face (cbd/adc). Next we want to make sure that all of the vertices are pointing to a correct half edge. In this case we made a point to ab, b point to bd, c point to ca, and d point to da. Similarly, we have to do the same for the faces. We set dab(abc) to da and cbd(adc) to ad. Finally we update the current edges halfedge to point to da to ensure it is correctly pointing to one of its half edges. The key thing to notice in our implementation is we wanted to make as minimal updates as possible. We found that the general direction of all the other edges (the one that wasn’t originally selected) were already correct and only need to have their next and face updated. This made it so we needed to modify less pointers and were less prone to bugs. This made implementation easier to visualize and no bugs were encountered.
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="task41.png">
+                    <figcaption>Without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task42.png">
+                    <figcaption>With normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task43.png">
+                    <figcaption>Without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task44.png">
+                    <figcaption>With normals</figcaption>
+                </figure>
+            </div>
+            <p>
+                The images above demonstrate what the wire mesh looks like when flipping the edges and how it looks with vertex normals.
+            </p>
+        </section>
+
+        <section id="section5">
+            <h2>Task 5</h2>
+            <p>
+                For task 5, we begin by defining all of the relevant information needed from the original two triangles connected to the chosen edge. We will call the first triangle abc and the second triangle cbd. We will define everything in an identical fashion to task 4 where the half edges of abc will be bc, ca, and ab along with getting the edges a, b, and c from the respective half edges. Similarly in cbd, we get cb, bd, and dc and get vertex d which is not in the previous triangle. I will use the following diagram to explain how I went about implementing edge split.
+            </p>
+            <img class="solo-image" src="task5explain.png">
+            <p>
+                Before reassigning all of the pointers to form all of the new triangles, we will define all of the elements we need. From the diagram above, we can see we will be forming 2 new faces (triangles), 1 new vertex, and 3 new edges. 3 New edges means we will also need 6 new half edges (2 half edges per edge). We will first define a new vertex m, with newVertex(). We want the position of the new vertex to be the midpoint of the two vertices of the original edge which would be b and c in our case. We easily just add the positions of b and c, then divide by 2 to get the midpoint for the position of the new edge. We then define 3 new edges which we will call maEdge, mbEdge, and mdEdge (this will correspond to the visuals above). Additional the old cbEdge in the presplit will be reused and renamed as the mcEdge. We will define 2 new faces as abm and mbd (the two bottom triangles in the diagram). We will then rename abc to be mca, and cbd to be cmd. For the final new elements, we will define the half edges. The new halfedges we will define are am, ma, md, dm, bm, mb, mc, and cm. We will rename bc into mc and cb into cm. This corresponds to making the original edge into the top center edge. Now that we have defined everything to be in terms of what we see in the diagram, we just have to connect all the pieces together. We start off by connecting the half edges of each triangle starting with mca. We will assign the appropriate pointers for mc with mc->setNeighbors(ca, cm, m, mcEdge, mca). We make the next pointer ca and the twin cm. We come out of vertex m, have the edge as mcEdge and are part of the mca face. We do similar assignments for ca and am to form the half edges as seen in the diagram. For ca, we can see that we keep everything the same other than making sure the face corresponds to mca, and that the next pointer points to am. We follow this exact scheme for all of the half edges in cmd, abm, and mbd. Once we have properly assigned all of the pointers for the half edges according to what we see in the diagram, we want to make sure all the vertices are pointing to the correct half edge. We can make the vertex point to any one of it’s half edges and in our case, we decided to make a point to ab, b to bd, c to ca, d to dc, and m to mc. Similarly, we want to assign all of the new edges and faces to anyone of it’s corresponding half edges. In this case we choose maEdge to ma, mbEdge to mb, mcEdge to mc, and mdEdge to md. For the faces we set mca to ca, cmd to dc, abm to ab, and mbd to bd. Our strategy for our implementation was to clearly draw out how we visualized the triangles of the before and after. We are able to arbitrarily label everything since we still know all triangles will follow the same pattern. This allows us to easily visualize how we want to reassign all of our pointers to form the new triangles after the split. Additionally, we wanted to minimize the amount of pointers we had to reassign so similar to edge flip, we kept all of the outer edges practically identical only needing to change it’s next and face pointers. Carefully drawing and labeling all the components of our diagrams made implementation much simpler and less prone to errors since we knew exactly what we wanted to do. This led to no bugs and a correct implementation on the first try. The green arrows in the diagram represent the new half edges we have to create (and edges respectively) and the purple arrows represent reusing the original edge we selected to be part of the top two triangles. This allowed the twin of this edge to stay exactly the same. Because we clearly defined everything, we essentially just had to connect all the pieces together like a puzzle.
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="task51.png">
+                    <figcaption>Only edge splits without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task52.png">
+                    <figcaption>Only edge splits with normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task53.png">
+                    <figcaption>Edge splits and flips without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task54.png">
+                    <figcaption>Edge splits and flips with normals</figcaption>
+                </figure>
+            </div>
+            <p>
+                The images above demonstrate what the wire mesh looks like when just spliting the edges and both splitting and flipping. We also show it with vertex normals.
+            </p>
+        </section>
+
+        <section id="section6">
+            <h2>Task 6</h2>
+            <p>
+	    When we are filling in a triangle with colors from a texture, we are sampling from a texture image, so we have to be careful about aliasing. If we take a set of three points that define the triangle we are trying to rasterize in screen space, they will correspond to a set of three points in the texture we are trying to sample from (and, as a result, will also form a triangle in texture space). From now on, I will refer to the mapped triangle existing in texture space as the "footprint" of the triangle in screen space. Suppose that the area (in texels), of the footprint is much larger than the area in pixels of the triangle it corresponds to in screen space. That means that moving one pixel inside the triangle in screen space might correspond to, say, moving 2 texels in the texture image. Suppose that in the texture image, there is an oscillation from black to white of frequency pi (that is, a checkerboard pattern). If we sample pixels without using level sampling, we will be skipping every other texel in the texture image, resulting in either a fully black or fully white triangle (a 0 frequency image, which is an alias of the original pi frequency in the texture image). To combat this, we low pass filter the texture image and downsample it by a factor of 2 many times to create many "mip maps". These are like blurrier versions of the original texture. If we blur and downsample by a factor of 2 on the contrived checkerboard-patterned texture described above, we will end up with a fully gray (0-frequency texture). Then, no matter which pixel you start from, you will always sample a completely gray triangle (you don't have a chance of getting an entirely black or entirely white triangle like described before). This is a better representation of the original texture. Essentially, with level sampling, we are choosing a sufficiently blurred and downsampled version of the original texture so that (approximately) a one pixel movement in screen space corresponds to a one texel movement in texture space (and we blur accordingly so that no aliasing happens). In order to choose the correct mip map level to sample from, we approximate the maximum stretch factor going from screen space to texture space. That is, for a point in screen space, we compute the uv-coordinates for (x, y), (x + 1, y), and (x, y + 1). The latter correspond to moving one pixel to the right and one pixel down from the original (x, y) pixel coordinate. We compute the difference between the uv-pair corresponding to (x+1, y) and the uv-pair to get an approximation of both du/dx and dv/dx. We get an approximation of du/dy and dv/dy using the same method. We then take the max of the norm of (du/dx, dv/dx) and the norm of (du/dy, dv/dy) as the maximum stretch that happens going from texture to screen space. The larger the stretch factor, the lower the frequency we are sampling at in that direction. That means that if we sufficiently antialias for the maximum stretch factor, we will also be sufficiently anti-aliasing for the other sampling direction. We choose the mip map level "D" by taking log2 of the value of the maximum stretch factor (denoted "L" in lecture). If the maximum stretch factor is 4, that means that in one sample direction (either in the x or y direction) we are jumping 4 texels in texture space. That means we should sample from mipmap level log2(4) = 2. Mipmap level 2 is the level that is 1/4 x 1/4 the size of the original texture. At this level, we will have blurred/averaged out all the frequencies in the texture image that could have gotten aliased had we sampled at with a 4-texel period. If the maximum stretch factor is a decimal, we can bilinearly interpolate between the samples of two different mipmap levels. So, if log2 of the maximum stretch factor is 2.4, we will take 0.4 times the sample from mipmap level 2 and 0.6 times the sample from mipmap level 3. Note that the sample from the mipmap levels themselves can also be bilinearly interpolated across the texels in their respective mips. If we bilinearly interpolate during texture sampling and at the mipmap level, we call it trilinear sampling. 
+            </p>
+	    <p>
+	    Using mipmap levels uses more memory since it requires you to store all the mipmaps. However, because the sizes of the levels correspond to a geometrically decaying sequence, the total memory is bounded by a constant times the original texture's size. Supersampling takes considerably longer since you need to sample more times from the texture for each pixel, but it usually has the best results when it comes to antialiasing. Because mipmaps are conservative when they choose the mipmap level to sample from (i.e., they choose the level according the max stretch factor, meaning that the smaller stretch factor will be sampled from an overblurred mipmap), they end up sometimes overblurring. In terms of texel sampling, nearest requires less computation than bilinear but aliases considerably more since it samples by snapping onto the nearest texel instead of taking a smooth weighted average over the surrounding texels.
+	    </p>
+
+        <img src="dog.png" class="solo-image">
+        <p>
+            We will be using my dog as a reference. He is a good boy.
+        </p>
+
+        <div class="image-container">
+            <figure>
+                <img src="dogzn.png">
+                <figcaption>Zero Level, Nearest</figcaption>
+            </figure>
+            <figure>
+                <img src="dogzb.png">
+                <figcaption>Zero Level, Bilinear</figcaption>
+            </figure>
+            <figure>
+                <img src="dognn.png">
+                <figcaption>Nearest Level, Nearest</figcaption>
+            </figure>
+            <figure>
+                <img src="dognb.png">
+                <figcaption>Nearest Level, Bilinear</figcaption>
+            </figure>
+        </div>
+        <p>
+            The image is being zoomed onto the top of the dogs nose. Between zero leveling and nearest leveling, it is clear that nearest leveling blurs the image. Between the sampling methods, bilinear sampling has more gradients within its coloring. This difference is more obvious when comparing the sampling methods with nearest level.
+        </p>
+        </section>
+    </main>
+</body>
 </html>
