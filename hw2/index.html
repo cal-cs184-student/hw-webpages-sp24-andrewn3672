@@ -68,7 +68,7 @@
         <section id="overview">
             <h2>Overview</h2>
             <p>
-                In this assignment, we implemented rasterizer functions to display images. The main goal was to implement techniques and algorithms to reduce aliasing and generate clean images. We utilized supersampling, different methods of pixel sampling, and different methods of level sampling. Through out the project, we learned the granular details on how each technique worked and how to effectively implement them. Not only were we striving to produce better pictures, but we also learned about the different trade offs between all of the methods. Supersampling at high rates for example lead to less aliasing, but decreased the performance of the program as we had to sample more points. This becomes evident when there are small delays when increasing the rate. The most interesting thing we learned about the project was the utilization of mipmaps and levels. It was interesting to see the utilization of mipmaps directly and to really understand how blurring images can actually make the image look better. When comparing using zero levels and linear levels, it was clear to see the blurring difference, and how it improved image quality overall. One thing we learned to be more aware of is the need to scale images appropiately when working with different resolutions and mapping textures. One of the biggest struggles of the project overall was typing. The difference between doubles and floats made a huge difference in how images were generated or to prevent segfaults. Because the sampling can get so granular, we found that doubles were needed to maintain accurrate representation of the points and floats would not be able to. This applies to int and sign_t as well. Overall, we were able to explore the tradeoffs between all of the methods and learned the innerworkings of each method clearly.
+                In this assignment, we implemented algorithms and techniques to display meshes. In section 1 of the assignment, we implemented Bezier curves and surfaces utilizing De Casteljau’s subdivision algorithm. Task 1 allowed us draw curves using a specified number of control points, and we could see how the curve and point changed when we moved the control points around and messed around with the t value. Task 2 was an extension of task 1 where we moved from working with 2d Bezier curves to 3d Bezier surfaces. The high level idea of task 2 was identical to task 1 and this allwed us to generate more complex 3d objects such as a teapot. In section 2 of the assignment, we worked directly with the halfedge data structure to implement powerful functionality. In task 3, we traversed the surounding triangles that were connected to the vertex to find the normal of the vertex and allow for better shading for smooth surfaces. We implemented edge flipping in task 4 which becomes very useful for subdivision in task 6. This task can be very tricky if we do not carefully keep track of what pointers we are working with since the heart of the task was to rearrange the existing pointers to "flip" the edge in the mesh. Similarly in task 5, we implemented task splitting which is also important for subdivision. This task ends up being trickier than task 4 as not only do we need to keep track of existing pointers, we have to create new ones and assign everything to each other appropiately. In both task 4 and 5, we found it extremely important to draw otu diagrams for how we envisioned the pointer assignment would be, and name variables based off of our drawn diagrams to abstract all of the pointers. This allowed us to implement these operations with no bugs and allowed us to implement task 6 cleanly. Lastly, implementing task 6 allowed for us to upsample a given mesh and make it look much smoother than the original. This is because we are constantly subdividing the large triangles into smaller ones to allow us to define the features much more clearly. An important thing we learned from this task is that you may lose the original shape you had if the edges of the triangles are not symmetrical or in the way you want it to be. This is because subdivisioon utilizes splitting the original existing edges and flipping them, then moving the position of the vertices to round out the mesh. There is also a good stopping point when upsampling because after a certain level, you can hardly see a difference, and we are creating much more triangles which ends up destroying the performance of the programming. This can be clearly seen with each level of subdivision, the framerate of the program drops.
             </p>
         </section>
 
@@ -240,37 +240,112 @@
         <section id="section6">
             <h2>Task 6</h2>
             <p>
-	    When we are filling in a triangle with colors from a texture, we are sampling from a texture image, so we have to be careful about aliasing. If we take a set of three points that define the triangle we are trying to rasterize in screen space, they will correspond to a set of three points in the texture we are trying to sample from (and, as a result, will also form a triangle in texture space). From now on, I will refer to the mapped triangle existing in texture space as the "footprint" of the triangle in screen space. Suppose that the area (in texels), of the footprint is much larger than the area in pixels of the triangle it corresponds to in screen space. That means that moving one pixel inside the triangle in screen space might correspond to, say, moving 2 texels in the texture image. Suppose that in the texture image, there is an oscillation from black to white of frequency pi (that is, a checkerboard pattern). If we sample pixels without using level sampling, we will be skipping every other texel in the texture image, resulting in either a fully black or fully white triangle (a 0 frequency image, which is an alias of the original pi frequency in the texture image). To combat this, we low pass filter the texture image and downsample it by a factor of 2 many times to create many "mip maps". These are like blurrier versions of the original texture. If we blur and downsample by a factor of 2 on the contrived checkerboard-patterned texture described above, we will end up with a fully gray (0-frequency texture). Then, no matter which pixel you start from, you will always sample a completely gray triangle (you don't have a chance of getting an entirely black or entirely white triangle like described before). This is a better representation of the original texture. Essentially, with level sampling, we are choosing a sufficiently blurred and downsampled version of the original texture so that (approximately) a one pixel movement in screen space corresponds to a one texel movement in texture space (and we blur accordingly so that no aliasing happens). In order to choose the correct mip map level to sample from, we approximate the maximum stretch factor going from screen space to texture space. That is, for a point in screen space, we compute the uv-coordinates for (x, y), (x + 1, y), and (x, y + 1). The latter correspond to moving one pixel to the right and one pixel down from the original (x, y) pixel coordinate. We compute the difference between the uv-pair corresponding to (x+1, y) and the uv-pair to get an approximation of both du/dx and dv/dx. We get an approximation of du/dy and dv/dy using the same method. We then take the max of the norm of (du/dx, dv/dx) and the norm of (du/dy, dv/dy) as the maximum stretch that happens going from texture to screen space. The larger the stretch factor, the lower the frequency we are sampling at in that direction. That means that if we sufficiently antialias for the maximum stretch factor, we will also be sufficiently anti-aliasing for the other sampling direction. We choose the mip map level "D" by taking log2 of the value of the maximum stretch factor (denoted "L" in lecture). If the maximum stretch factor is 4, that means that in one sample direction (either in the x or y direction) we are jumping 4 texels in texture space. That means we should sample from mipmap level log2(4) = 2. Mipmap level 2 is the level that is 1/4 x 1/4 the size of the original texture. At this level, we will have blurred/averaged out all the frequencies in the texture image that could have gotten aliased had we sampled at with a 4-texel period. If the maximum stretch factor is a decimal, we can bilinearly interpolate between the samples of two different mipmap levels. So, if log2 of the maximum stretch factor is 2.4, we will take 0.4 times the sample from mipmap level 2 and 0.6 times the sample from mipmap level 3. Note that the sample from the mipmap levels themselves can also be bilinearly interpolated across the texels in their respective mips. If we bilinearly interpolate during texture sampling and at the mipmap level, we call it trilinear sampling. 
+                First, we iterate through all of the original vertices in the mesh and compute its new 3D position according to its original position, its degree, and the sum of the surrounding vertex positions. We do not update each vertex’s position during the iteration because that would throw off the subsequent calculations we would do on its surrounding vertices. 
             </p>
-	    <p>
-	    Using mipmap levels uses more memory since it requires you to store all the mipmaps. However, because the sizes of the levels correspond to a geometrically decaying sequence, the total memory is bounded by a constant times the original texture's size. Supersampling takes considerably longer since you need to sample more times from the texture for each pixel, but it usually has the best results when it comes to antialiasing. Because mipmaps are conservative when they choose the mipmap level to sample from (i.e., they choose the level according the max stretch factor, meaning that the smaller stretch factor will be sampled from an overblurred mipmap), they end up sometimes overblurring. In terms of texel sampling, nearest requires less computation than bilinear but aliases considerably more since it samples by snapping onto the nearest texel instead of taking a smooth weighted average over the surrounding texels.
-	    </p>
+            <p>
+                Second, we iterate through all of the original edges inside the mesh. We will eventually end up splitting on all of these edges, so we precompute the 3D position of the vertex that will lie at the center of the edge by taking the weighted average of the vertices that make up the adjoining triangles. By this point, we will have precomputed the new 3D positions of all the old vertices in the mesh along with the 3D positions of the new vertices we have yet to add once we start splitting. These values are stored in convenient “edge->newPosition” (for the positions of to-be-added vertices) and “vertex->newPosition” (for the new positions of old vertices) struct members. In fact, the mesh still looks exactly the same as it originally did at this point: we have not flipped or split any edges, and all the vertices are still at their original 3D positions. 
+            </p>
+            <p>
+                The third step of the algorithm is the edge-splitting process. We start by iterating through all of the edges. For each edge, we get the two vertices it connects, v0 and v1. Then, before we do any splitting, we check if both the vertices are from the old mesh. If both are old vertices, we split the connecting edge. Otherwise, we don’t. This is because each time we split an edge, we actually create four “new” edges that we don’t want to split. Two of those edges will lie collinear with the original edge we just split, and two of those edges will be connected to the outermost vertices of the adjoining triangles of the original edge. The two collinear edges are guaranteed to connect an old vertex with the new vertex we just created at the center of the original edge. However, even though technically they are “new” edges, we want to consider them as “old” edges for the following reason: when we go to flip edges, we want to flip newly created edges that join an old vertex with a new vertex; however, we do not want to flip any of the collinear edges we created (these collinear edges make up the black edges on the diagram in the project specification). If we mark the collinear edges as “new”, then they would actually fit the criteria for flipping them later, which we do not want. As such, each time we split on an edge, we actually only mark the other two new edges as “new” (not the collinear ones). However, even though we don’t mark the collinear created edges as “new”, we don’t want to split on them again as we iterate through all the edges. This needs to be carefully handled because we are iterating through the list of edges but also adding new edges to that list in each iteration of the loop. In order to make sure we skip over all four of the edges we just created in a particular split, we only split on an edge if it connects two old vertices. Since all four of the edges we create in split are guaranteed to be connected to a new vertex (i.e., the vertex at the center of the split), this ensures that we do not split on any of those four newly created edges again, even if we only mark two of them as being “new”.
+            </p>
+            <p>
+                The fourth step of the algorithm is to flip the newly created edges that connect a new vertex with an old vertex. Again, each time we split in the previous step of the algorithm we technically made four new edges. However, we only want to consider edges that do not coincide with an edge originally in the mesh. Because we did not mark any of these collinear new edges as actually being new, we can safely flip edges that meet the following conditions: the edge connects an old vertex to a new one and it has been marked as new. As we iterate through the edges in the mesh we mark it as old irrespective of whether we ended up flipping it or not.
+            </p>
+            <p>
+                Once we have completed the previous four steps, the mesh should be topologically the same as the final subdivided mesh we want. All we need to do is iterate through each vertex (old and new) and replace its 3D position with the new positions we precomputed in the first step of the algorithm. Then we are done.
+            </p>
+            <p>
+                When performing loop subdivision on the cube, the cube becomes increasingly asymmetric. It begins to look like a lopsided basketball. A key thing to notice though is that the more we subdivide, the object becomes smoother and smoother. After a certain number of subdivisions, you can barely tell a difference from when you toggle vertex normals. For the cube, as we subdivide, the edges and corners of the cube become rounded out, but not in a symmetrical way. This leads the original cube shape to be unidentifiable. We can reduce this effect and still maintain a cube-like structure by splitting all of the diagonal edges on each face. This makes it so that when we subdivide, it guarantees that every face will have a symmetrical pattern. For other meshes such as the teapot, we noticed that we did not need to do any preprocessing for the mesh to stay the same shape. The teapot became a lot smoother with subdivision and maintained its original shape very well.
+            </p>
 
-        <img src="dog.png" class="solo-image">
+        <div class="image-container">
+            <figure>
+                <img src="task61.png">
+                <figcaption>Level 0</figcaption>
+            </figure>
+            <figure>
+                <img src="task62.png">
+                <figcaption>Level 1</figcaption>
+            </figure>
+            <figure>
+                <img src="task63.png">
+                <figcaption>Level 2</figcaption>
+            </figure>
+            <figure>
+                <img src="task64.png">
+                <figcaption>Level 3</figcaption>
+            </figure>
+            <figure>
+                <img src="task65.png">
+                <figcaption>Level 4</figcaption>
+            </figure>
+            <figure>
+                <img src="task66.png">
+                <figcaption>Level 5</figcaption>
+            </figure>
+            <figure>
+                <img src="task67.png">
+                <figcaption>Level 6</figcaption>
+            </figure>
+            <figure>
+                <img src="task68.png">
+                <figcaption>Level 6, No Wire</figcaption>
+            </figure>
+        </div>
         <p>
-            We will be using my dog as a reference. He is a good boy.
+            As we subdivide the cube with no pre-splitting, you can see we lose the cube shape with each level. Additionally, past level 4, the general shape of the mesh is solidified and doesn't really change. At level 6, you can no longer even see the triangles without the wire frame. This is because the triangles become so small that it just looks smooth to the human eye at this point. In the next set of images, we will presplit all of the diagoonal edges found on each face to achieve a more symmetrical look, and still have somewhat similar structure to the original cube.
         </p>
 
         <div class="image-container">
             <figure>
-                <img src="dogzn.png">
-                <figcaption>Zero Level, Nearest</figcaption>
+                <img src="task69.png">
+                <figcaption>Level 0</figcaption>
             </figure>
             <figure>
-                <img src="dogzb.png">
-                <figcaption>Zero Level, Bilinear</figcaption>
+                <img src="task610.png">
+                <figcaption>Level 1</figcaption>
             </figure>
             <figure>
-                <img src="dognn.png">
-                <figcaption>Nearest Level, Nearest</figcaption>
+                <img src="task611.png">
+                <figcaption>Level 2</figcaption>
             </figure>
             <figure>
-                <img src="dognb.png">
-                <figcaption>Nearest Level, Bilinear</figcaption>
+                <img src="task612.png">
+                <figcaption>Level 3</figcaption>
+            </figure>
+            <figure>
+                <img src="task613.png">
+                <figcaption>Level 4</figcaption>
+            </figure>
+            <figure>
+                <img src="task614.png">
+                <figcaption>Level 5</figcaption>
+            </figure>
+            <figure>
+                <img src="task615.png">
+                <figcaption>Level 6</figcaption>
+            </figure>
+            <figure>
+                <img src="task616.png">
+                <figcaption>Level 6, No Wire</figcaption>
             </figure>
         </div>
         <p>
-            The image is being zoomed onto the top of the dogs nose. Between zero leveling and nearest leveling, it is clear that nearest leveling blurs the image. Between the sampling methods, bilinear sampling has more gradients within its coloring. This difference is more obvious when comparing the sampling methods with nearest level.
+            At level 0, you can see how the splitting differs from the original cube. From the visual intuition, you can already see the symmetry on each face of the cube so when we subdivde, it makes sense that it would maintain a much more symmetrical shape than without the pre-splitting. In the original, just looking at the face of the cube, we can see that if we split one face vertically down the middle, we would not be left with two symmetrical pieces. By symmetrical, I mean it does not reflect over the y-axis. Even the single diagonals of each face or not consistent with each other, so not matter what angle we look at, the original cube will always look asymmetrical. When looking at the presplit levels, we can still see a cube structure, similar to that of a rounded dice.
+        </p>
+
+        <div class="image-container">
+            <figure>
+                <img src="task617.png">
+                <figcaption>Level 6, Presplit</figcaption>
+            </figure>
+            <figure>
+                <img src="task618.png">
+                <figcaption>Level 6, Original</figcaption>
+            </figure>
+        </div>
+        <p>
+            When looking at the face view of the presplit cube and the original cube, both at level 6, we can still clearly see a symmetrical square shape on the presplit cube. The original is very asymetrical and the cube shape can barely be recognized. In the original cube, because we only split the orignal edges once, all of the faces having different non symmetrical diagonals makes it so that the splits and subsequences splits will not be identical to each other. In the presplit faces, you can see how the triangles from the wire frame get smaller at the centers of each face showing where the symmetrical nature of the subdivision is coming from. Although we cannot perfectly prevent the edges from being rounded out, pre-splitting definitely allows us to maintain the original shape of the cube.
         </p>
         </section>
     </main>
