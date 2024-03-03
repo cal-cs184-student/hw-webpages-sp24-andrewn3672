@@ -1,7 +1,250 @@
 <html>
-	<head>
-	</head>
-	<body>
-		Homework 3 index.html here
-	</body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>184 HW2</title>
+    <style>
+        h1 {
+            text-align: center;
+        }
+        h2 {
+            text-align: center;
+        }
+        h3 {
+            text-align: center;
+        }
+        .solo-image {
+            max-width: 45%; 
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .image-container img {
+            max-width: 100%; 
+       
+            margin: 10px; 
+        }
+        .image-container figcaption {
+            text-align: center;
+            width: 100%; 
+        }
+        .image-container figure {
+            display: inline-block;
+            max-width: 45%; 
+            margin: 10px;
+        }
+        figure{
+            display: inline-block;
+        }
+                
+    </style>
+</head>
+<body>
+    <header>
+        <h1>CS184 Homework 3: Ray Tracing</h1>
+        <h2>Andres Avella and Andrew Nguyen</h2>
+        <a href="https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw3/index.html">https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw2/index.html</a>
+        <nav>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#section1">Part 1</a></li>
+                <li><a href="#section2">Part 2</a></li>
+                <li><a href="#section3">Part 3</a></li>
+                <li><a href="#section4">Part 4</a></li>
+                <li><a href="#section5">Part 5</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>
+                In this assignment, we implemented algorithms and techniques to display meshes. In section 1 of the assignment, we implemented Bezier curves and surfaces utilizing De Casteljau’s subdivision algorithm. Task 1 allowed us to draw curves using a specified number of control points, and we could see how the curve and point changed when we moved the control points around and messed around with the t value. Task 2 was an extension of task 1 where we moved from working with 2d Bezier curves to 3d Bezier surfaces. The high-level idea of task 2 was identical to task 1 and this allowed us to generate more complex 3d objects such as a teapot. In section 2 of the assignment, we worked directly with the halfedge data structure to implement powerful functionality. In task 3, we traversed the surrounding triangles that were connected to the vertex to find the normal of the vertex and allow for better shading for smooth surfaces. We implemented edge flipping in task 4 which becomes very useful for subdivision in task 6. This task can be very tricky if we do not carefully keep track of what pointers we are working with since the heart of the task was to rearrange the existing pointers to "flip" the edge in the mesh. Similarly in task 5, we implemented task splitting which is also important for subdivision. This task ends up being trickier than task 4 as not only do we need to keep track of existing pointers, but we also have to create new ones and assign everything to each other appropriately. In both task 4 and 5, we found it extremely important to draw out diagrams for how we envisioned the pointer assignment would be, and name variables based on our drawn diagrams to abstract all of the pointers. This allowed us to implement these operations with no bugs and allowed us to implement task 6 cleanly. Lastly, implementing task 6 allowed us to upsample a given mesh and make it look much smoother than the original. This is because we are constantly subdividing the large triangles into smaller ones to allow us to define the features much more clearly. An important thing we learned from this task is that you may lose the original shape you had if the edges of the triangles are not symmetrical or in the way you want it to be. This is because subdivision utilizes splitting the original existing edges and flipping them, then moving the position of the vertices to round out the mesh. There is also a good stopping point when upsampling because after a certain level, you can hardly see a difference, and we are creating many more triangles which ends up destroying the performance of the programming. This can be clearly seen with each level of subdivision, the framerate of the program drops.
+            </p>
+        </section>
+
+        <section id="section1">
+            <h2>Part 1</h2>
+            <p>
+                We are given (x, y) pixels in image space. These are the (x, y) pixel coordinates of the image we want to display on the screen. We want to display an image that comes from the view of a camera oriented in the world. We normalize these image pixel coordinates by dividing the x-coordinate by the width of the sample buffer and the y-coordinate by the height of the sample buffer. We now want to transform the normalized image coordinates onto the sensor plane of the camera. To do this, we first translate the center of the image coordinate space onto the center of the sensor plane coordinate space by subtracting 0.5 from both the normalized x- and y-coordinates. After normalizing and shifting, our (x, y) coordinate will exist in the square defined by [-0.5, 0.5] x [-0.5, 0.5]. We want to scale this rectangle according to the vertical and horizontal field of view of the camera. If we define our coordinate space such that the camera is facing in the negative z-direction, and then we choose to place our sensor plane at z = -1, we know that the sensor will be made up of the rectangle defined by [-tan(0.5 * hFov), tan(0.5 * hFov)] x  [-tan(0.5 * vFov), tan(0.5 * vFov)] (where hFov and vFov are the horizontal and vertical fields of view in radians, respectively). We want to map the [-0.5, 0.5] x [-0.5, 0.5] square onto this rectangle. We do this by multiplying our normalized and shifted (x, y) coordinates in the following way: x’ = x * 2 * tan(0.5 * hFov) and y’ = y * 2 * tan(0.5 * vFov). The ray going from the camera’s center of projection to this point is then (x’, y’, -1), since the camera’s center of projection is taken to be the origin in the camera coordinate space. We then rotate the ray using the camera-to-world matrix and set its origin to be the position of the camera’s center of projection in world space. This is the same ray, but it is written in the world coordinate space.
+            </p>
+			<p>
+				To check if a ray intersects a triangle, we first find the intersection of the ray with the plane that the triangle is in. We parameterize the ray as r(t) = o + t * d, where o is the origin of the ray and d is the direction of the ray. We take the difference of this ray with one of the triangles vertices (r(t) - v). For the value of “t” that defines where r(t) intersects the plane, the vector r(t) - v should be entirely contained within the plane. That is, if we take dot product between the normal vector to the plane and this vector, it should be equal to 0 for the value of “t” that the ray intersects the plane. In other words, we can take the equation N・(r(t) - v) = 0 and solve for “t”, where N is the normal vector to the plane containing the triangle and v is one of the triangles vertices. We plug this value of “t” in the r(t) to obtain the point p that lies on the plane containing the triangle. Then we check if p lies within the bounds of the triangle using the line test. The line test is a little different in three dimensions. In order to perform it, we start with two of the triangle vertices that define the line we want to do the line test for. We will call these two vertices v0 and v1. We also take N, which is the normal vector to the plane containing the triangle. Then we take the cross product N x (v1 - v2). This will be n, the normal vector to the line that is also coplanar with the triangle. Then we take the point p we computed earlier and dot it with n. That is, we have Li = n・p. We compute Li for each of the three sides and make sure they are either all non-negative or all non-positive.  If this is the case, then the point p is inside the triangle. For this check to work properly, we make sure that we take the sides to be the differences of the vertices chosen in any winding order (either clockwise or counter-clockwise). That is, if we are given vertices v1, v2, and v3, our sides will be defined as (v2 - v1), (v3 - v2), and (v1 - v3).
+			</p>
+            <div class="image-container">
+                <figure>
+                    <img src="CBemptyp1.png">
+                    <figcaption>CBempty, 12 primitives, 0.13 seconds, 3.4161 million rays per second, 8 intersection tests per ray</figcaption>
+                </figure>
+                <figure>
+                    <img src="CBspheresp1.png">
+                    <figcaption>CBspheres, 14 primitives, 0.13 seconds, 3.4239 million rays per second, 9 intersection tests per ray</figcaption>
+                </figure>
+                <figure>
+                    <img src="bananap1.png">
+                    <figcaption>banana, 2458 primitives, 32 seconds, 0.0148 million rays per second, 2049 intersection tests per ray</figcaption>
+                </figure>
+				<figure>
+                    <img src="cowp1.png">
+                    <figcaption>cow, 5856 primitives, 1.01 minutes, 0.0064 million rays per second, 4252 intersection tests per ray</figcaption>
+                </figure>
+                <figure>
+                    <img src="bunnyp1.png">
+                    <figcaption>bunny, 33696 primitives, 8.05 minutes, 0.0011 million rays per second, 24395 intersection tests per ray</figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <section id="section2">
+            <h2>Part 2</h2>
+            <p>
+                In our BVH construction algorithm, we begin by iterating through the primitives given by start and end. We retrieve the bounding box primitive, and expand our current bounding box variable, bbox, with the primitive’s bounding box with (*p)->get_bbox(). We also retrieve the centroid of the primitive’s bounding box and add it to a total sum of all the primitives. We also keep track of how many primitives we have iterated over. Once we iterate through the primitives, we divide the sum of the centroids to get the average. We also define our current node with new BVHNode(bbox). In our first case, if the size we got is greater than the max_leaf_size, we know this will be an inner node where we want to split the primitives into left and right children nodes. In this case, we create two new vectors which we will call left and right. We make sure we initialize the vector as a pointer to a vector so that it is saved in the heap rather than the stack. We then get the x, y, and z coordinates from the centroid average which we will use as part of our heuristic. For our heuristic, based on the axis we choose to split, we iterate over the primitives and put the primitive in the left child if its centroid is less than the computed average of all centroids based on the given axis. To choose the axis we end up splitting, we use the previous grouping algorithm and check the group sizes of the left and right for each axis. The axis with the lowest absolute difference has group sizes closest to one another meaning that the axis will have the most even split which is the axis we will end up splitting by. Based on the axis we choose, we iterate through the primitives again for a final time, and group the primitives into their proper left and right buckets for the official vector. We then make the current node's left and right children the recursive call to construct_bvh with the given left and right vectors. This is done by node->l = construct_bvh(left->begin(), left->end(), max_leaf_size) and node->r = construct_bvh(right->begin(), right->end(), max_leaf_size). We then return the node. In the other case where the amount of primitives passed in is less than or equal to max_leaf_size, we know this will be a leaf node. This means the primitives fit in the node and we do not need to split. All we need to do is set the start and end of the node to the start and end inputs and return the node. This assignment is done with node->start = start and node->end = end.
+            </p>
+
+            <div class="image-container">
+				<figure>
+					<img src="dragonp2.png">
+					<figcaption>dragon, Optimized = (105120 primitives, 0.4647 seconds, 0.9348 million rays per second, 21 intersection tests per ray)</figcaption>
+				</figure>
+				<figure>
+                    <img src="CBlucyp2.png">
+                    <figcaption>CBlucy, Optimized = (133796 primitives, 0.8454 seconds, 0.5116 million rays per second, 35 intersection tests per ray)</figcaption>
+                </figure>
+				<figure>
+                    <img src="blobp2.png">
+                    <figcaption>blob, Optimized = (196608 primitives, 1.3687 seconds, 0.3327 million rays per second, 53 intersection tests per ray)</figcaption>
+                </figure>
+			</div>
+			<h3>Comparisons with and without BVH acceleration</h3>
+			<div class="image-container">
+				<figure>
+					<img src="cowp1.png">
+					<figcaption>cow, Unoptimized = (5856 primitives, 1.01 minutes, 0.0064 million rays per second, 4252 intersection tests per ray),
+						Optimized = (5856 primitives, 0.1032 seconds, 4.1827 million rays per second, 5 intersection tests per ray)
+					</figcaption>
+				</figure>
+				<figure>
+					<img src="bunnyp1.png">
+					<figcaption>bunny, Unoptimized = (33696 primitives, 8.05 minutes, 0.0011 million rays per second, 24395 intersection tests per ray),
+						Optimized = (33696 primitives, 0.1713 seconds, 2.6041 million rays per second, 7 intersection tests per ray)
+					</figcaption>
+				</figure>
+                <figure>
+                    <img src="maxp2.png">
+                    <figcaption>maxplanck, Unoptimized = (50801 primitives, 10.98 minutes, 0.0007 million rays per second, 38897 intersection tests per ray),
+						Optimized = (50801 primitives, 0.3926 seconds, 1.1335 million rays per second, 19 intersection tests per ray)
+					</figcaption>
+                </figure>
+            </div>
+            <p>
+				For our comparisons of the renderings with and without BVH acceleration, we will be using cow.dae, bunny.dae, and maxplanck.dae. For cow.dae, there are 5856 primitives in total. For the unoptimized case, it took 1.01 minutes to render. On average, 0.0064 million rays were processed per second and we had 4252 intersection tests per ray. In comparison, BVH acceleration sped up the render to process in 0.1032 seconds. 4.1827 million rays were processed per second and we only needed to have 5 intersection tests per ray on average. This means there was a 587x speed up in rendering time, 654x more rays processed per second, and 850x less intersection needed to be done with BVH acceleration. For bunny.dae, there were 33696 primitives. The difference between exact values can be seen in the images above. With BVH acceleration, the rendering time was 2820x faster, 2367x more rays were processed per second, and 3485x fewer intersection tests were needed on average. Finally, we compared the results of the optimized and unoptimized with maxplanck.dae that had 50801 primitives. Once again the exact numbers are seen above in the caption of the images, and we will go over the performance increase. With BVH acceleration, the rendering time was 1678x faster, 1619x more rays were processed per second, and 2047x fewer intersection tests were needed on average. In conclusion, BVH acceleration has massive performance increase. We can see much larger performance gains with larger dae files when comparing cow.dae to bunny.dae and maxplanck.dae.
+			</p>
+        </section>
+
+        <section id="section3">
+            <h2>Part 3</h2>
+            <p>
+                For an initial vertex v0, there can be an arbitrary amount of surrounding triangles. We start with v0’s halfedge. If we iterate through the halfedges using h = h->next(), we will traverse the sides of one of the triangles that surrounds v0. As we traverse the halfedges, we collect the two vertices that make up the triangle we are traversing. We call the first one we traverse v1 and the second one v2. The vectors (v1 - v0) and (v2 - v0) correspond to the two sides of the triangle that intersect with v0. These two vectors lie in the plane occupied by the triangle. If we take the cross product (v1 - v0) x (v2 - v0), we will get the vector that is normal to the plane of the triangle. The length of this vector is equal to the parallelogram that is spanned by (v1 - v0) and (v2 - v0). The area of the triangle is therefore ½ times the area of this parallelogram. We take the cross product in that order (i.e., (v1 - v0) x (v2 - v0) instead of (v2 - v0) x (v1 - v0)) because the halfedges are oriented such that the direction of the normal to the triangle they surround can be found with the right-hand rule. We go from triangle to triangle around v0 by taking h = h->next()->next()->twin(). For each triangle, we add (½ * (v1 - v0) x (v2 - v0)) to the running area-weighted sum of normals. After we return back to the original halfedge of the first triangle, we stop iterating, divide the area-weighted sum of normals by its norm, and return it. This returned vector is equivalently the area-weighted average of the normals of the surrounding triangles.             
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="task34.png">
+                    <figcaption>With the wire frame, without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task35.png">
+                    <figcaption>With the wire frame, without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task31.png">
+                    <figcaption>With the wire frame, with normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task32.png">
+                    <figcaption>Without the wire frame, with normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task33.png">
+                    <figcaption>Incorrect implementation with the normal pointing the opposite way</figcaption>
+                </figure>
+            </div>
+            <p>
+                These images show the difference when we normalize the vertices and don't normalize the vertices. We also included what it looked like if you calculated the normals in the opposite direction for fun.
+            </p>
+        </section>
+
+        <section id="section4">
+            <h2>Part 4</h2>
+            <p>
+                In our implementation of edge flip, we started by first defining all of the elements of the current existing triangles based on the chosen edge. We will call one triangle abc and the second triangle cbd. The half edges of abc are retrieved from taking the halfedge of e0 (the inputted edge) and calling it bc. We then iterate through the halfedgeiter to label ca then ab. We can then get vertices for abc by getting vertex a from ab, vertex b from bc, and vertex c from ca. Finally, we can get the face for abc from bc. For cbd, we do it in the same way, but we get the twin of bc to get cb. We then get the half edges for bd and dc. Vertex d is taken from dc. Lastly, we get the face for cbd from cb. We do not need to get the edges for anything other than the original one we are flipping because that will be the only edge we will be “moving”.
+            </p>
+            <img class="solo-image" src="task4explain.png">
+            <p>
+                The above image is how we will be flipping the triangle. We will translate abc to be dab, and cbd to adc. This means ca, ab, bd, and dc will be nearly the same other than updating it’s next pointer. We first look to update the halfedges for the new triangle. To do this, we translate cb to turn into da. We update da by da->setNeighbors(ab, cb, d, e0, abc). We know in the new triangle, da points to ab, and our twin will still be cb which later becomes “ad” but is still the same object. We set the vertex as d since that is where this halfedge will come out of. We will also treat abc as dab, but will also just be the same object. We then update ab to point to bd and bd to point to da. We also make sure their respective face corresponds to abc and everything else is the same. The second triangle we be translated in the same way. We can then reference cb as ad. To update ad we do essentially the same thing by ad->setNeighbors(dc, da, a, e0, cbd). This makes it so our next halfedge is dc, we essentially keep the same twin which is da (bc), keep the same edge, and treat our original triangle of cbd but can view it as adc. We then update dc and ca to have the correct next (ca and ad respectively) and face (cbd/adc). Next we want to make sure that all of the vertices are pointing to a correct half edge. In this case we made a point to ab, b point to bd, c point to ca, and d point to da. Similarly, we have to do the same for the faces. We set dab(abc) to da and cbd(adc) to ad. Finally, we update the current edges halfedge to point to da to ensure it is correctly pointing to one of its half edges. The key thing to notice in our implementation is we wanted to make as minimal updates as possible. We found that the general direction of all the other edges (the one that wasn’t originally selected) were already correct and only need to have their next and face updated. This made it so we needed to modify less pointers and were less prone to bugs. This made implementation easier to visualize and no bugs were encountered.
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="task41.png">
+                    <figcaption>Without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task42.png">
+                    <figcaption>With normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task43.png">
+                    <figcaption>Without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task44.png">
+                    <figcaption>With normals</figcaption>
+                </figure>
+            </div>
+            <p>
+                The images above demonstrate what the wire mesh looks like when flipping the edges and how it looks with vertex normals.
+            </p>
+        </section>
+
+        <section id="section5">
+            <h2>Part 5</h2>
+            <p>
+                For task 5, we begin by defining all of the relevant information needed from the original two triangles connected to the chosen edge. We will call the first triangle abc and the second triangle cbd. We will define everything in an identical fashion to task 4 where the half edges of abc will be bc, ca, and ab along with getting the edges a, b, and c from the respective half edges. Similar in cbd, we get cb, bd, and dc and get vertex d which is not in the previous triangle. I will use the following diagram to explain how I went about implementing edge split.
+            </p>
+            <img class="solo-image" src="task5explain.png">
+            <p>
+                Before reassigning all of the pointers to form all of the new triangles, we will define all of the elements we need. From the diagram above, we can see we will be forming 2 new faces (triangles), 1 new vertex, and 3 new edges. 3 New edges means we will also need 6 new halfedges (2 halfedges per edge). We will first define a new vertex m, with newVertex(). We want the position of the new vertex to be the midpoint of the two vertices of the original edge which would be b and c in our case. We easily just add the positions of b and c, then divide by 2 to get the midpoint for the position of the new edge. We then define 3 new edges which we will call maEdge, mbEdge, and mdEdge (this will correspond to the visuals above). Additional the old cbEdge in the presplit will be reused and renamed as the mcEdge. We will define 2 new faces as abm and mbd (the two bottom triangles in the diagram). We will then rename abc to be mca, and cbd to be cmd. For the final new elements, we will define the half edges. The new halfedges we will define are am, ma, md, dm, bm, mb, mc, and cm. We will rename bc into mc and cb into cm. This corresponds to making the original edge into the top center edge. Now that we have defined everything to be in terms of what we see in the diagram, we just have to connect all the pieces together. We start off by connecting the half edges of each triangle starting with mca. We will assign the appropriate pointers for mc with mc->setNeighbors(ca, cm, m, mcEdge, mca). We make the next pointer ca and the twin cm. We come out of vertex m, have the edge as mcEdge and are part of the mca face. We do similar assignments for ca and am to form the half edges as seen in the diagram. For ca, we can see that we keep everything the same other than making sure the face corresponds to mca, and that the next pointer points to am. We follow this exact scheme for all of the half edges in cmd, abm, and mbd. Once we have properly assigned all of the pointers for the half edges according to what we see in the diagram, we want to make sure all the vertices are pointing to the correct half edge. We can make the vertex point to any one of it’s half edges and in our case, we decided to make a point to ab, b to bd, c to ca, d to dc, and m to mc. Similarly, we want to assign all of the new edges and faces to any of it’s corresponding half edges. In this case, we choose maEdge to ma, mbEdge to mb, mcEdge to mc, and mdEdge to md. For the faces, we set mca to ca, cmd to dc, abm to ab, and mbd to bd. Our strategy for our implementation was to clearly draw out how we visualized the triangles of the before and after. We are able to arbitrarily label everything since we still know all triangles will follow the same pattern. This allows us to easily visualize how we want to reassign all of our pointers to form the new triangles after the split. Additionally, we wanted to minimize the amount of pointers we had to reassign so similar to edge flip, we kept all of the outer edges practically identical only needing to change it’s next and face pointers. Carefully drawing and labeling all the components of our diagrams made implementation much simpler and less prone to errors since we knew exactly what we wanted to do. This led to no bugs and a correct implementation on the first try. The green arrows in the diagram represent the new half edges we have to create (and edges respectively) and the purple arrows represent reusing the original edge we selected to be part of the top two triangles. This allowed the twin of this edge to stay exactly the same. Because we clearly defined everything, we essentially just had to connect all the pieces together like a puzzle.
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="task51.png">
+                    <figcaption>Only edge splits without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task52.png">
+                    <figcaption>Only edge splits with normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task53.png">
+                    <figcaption>Edge splits and flips without normals</figcaption>
+                </figure>
+                <figure>
+                    <img src="task54.png">
+                    <figcaption>Edge splits and flips with normals</figcaption>
+                </figure>
+            </div>
+            <p>
+                The images above demonstrate what the wire mesh looks like when just spliting the edges and both splitting and flipping. We also show it with vertex normals.
+            </p>
+        </section>
+
+    </main>
+</body>
 </html>
