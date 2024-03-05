@@ -106,7 +106,7 @@
         <section id="section2">
             <h2>Part 2</h2>
             <p>
-                In our BVH construction algorithm, we begin by iterating through the primitives given by start and end. We retrieve the bounding box primitive, and expand our current bounding box variable, bbox, with the primitive’s bounding box with (*p)->get_bbox(). We also retrieve the centroid of the primitive’s bounding box and add it to a total sum of all the primitives. We also keep track of how many primitives we have iterated over. Once we iterate through the primitives, we divide the sum of the centroids to get the average. We also define our current node with new BVHNode(bbox). In our first case, if the size we got is greater than the max_leaf_size, we know this will be an inner node where we want to split the primitives into left and right children nodes. In this case, we create two new vectors which we will call left and right. We make sure we initialize the vector as a pointer to a vector so that it is saved in the heap rather than the stack. We then get the x, y, and z coordinates from the centroid average which we will use as part of our heuristic. For our heuristic, based on the axis we choose to split, we iterate over the primitives and put the primitive in the left child if its centroid is less than the computed average of all centroids based on the given axis. To choose the axis we end up splitting, we use the previous grouping algorithm and check the group sizes of the left and right for each axis. The axis with the lowest absolute difference has group sizes closest to one another meaning that the axis will have the most even split which is the axis we will end up splitting by. Based on the axis we choose, we iterate through the primitives again for a final time, and group the primitives into their proper left and right buckets for the official vector. We then make the current node's left and right children the recursive call to construct_bvh with the given left and right vectors. This is done by node->l = construct_bvh(left->begin(), left->end(), max_leaf_size) and node->r = construct_bvh(right->begin(), right->end(), max_leaf_size). We then return the node. In the other case where the amount of primitives passed in is less than or equal to max_leaf_size, we know this will be a leaf node. This means the primitives fit in the node and we do not need to split. All we need to do is set the start and end of the node to the start and end inputs and return the node. This assignment is done with node->start = start and node->end = end.
+                In our BVH construction algorithm, we begin by iterating through the primitives given by start and end. We retrieve the bounding box primitive, and expand our current bounding box variable, bbox, with the primitive’s bounding box with (*p)->get_bbox(). We also retrieve the centroid of the primitive’s bounding box and add it to a total sum of all the primitives. We also keep track of how many primitives we have iterated over. Once we iterate through the primitives, we divide the sum of the centroids to get the average. We also define our current node with new BVHNode(bbox). In our first case, if the size we got is greater than the max_leaf_size, we know this will be an inner node where we want to split the primitives into left and right children nodes. We get the x, y, and z coordinates from the centroid average which we will use as part of our heuristic. To choose the axis we end up splitting, we iterate throught the primitives and keep count of how many elements we will split into the left and right. This count is determined by saying that the left side will be those that are equal or less than to the centroid average and the rest are on the right based on the axis. The axis with the lowest absolute difference has group sizes closest to one another meaning that the axis will have the most even split which is the axis we will end up splitting by. For our heuristic, based on the axis we choose to split, we first sort the given start and end list from least to greatest based on the chosen axis. We then iterate over the primitives and once we find a primitive that is greater than or equal to the axis average, we call this the middle and break from the loop. Lastly, we want to make sure that both groups have atleast one primitive in it, otherwise we will enter infinite recursion if one side always has all of the primitives. To combat this, we initialze middle to equal end. If middle ends up equal to start, we increment middle with middle++. If it is equal to end, we call middle--. This prevents all primitives on being on one side. We then make the current node's left and right children the recursive call to construct_bvh with the given left and right vectors. This is done by node->l = construct_bvh(start, middle, max_leaf_size) and node->r = construct_bvh(middle, end, max_leaf_size). We then return the node. In the other case where the amount of primitives passed in is less than or equal to max_leaf_size, we know this will be a leaf node. This means the primitives fit in the node and we do not need to split. All we need to do is set the start and end of the node to the start and end inputs and return the node. This assignment is done with node->start = start and node->end = end.
             </p>
 
             <div class="image-container">
@@ -156,29 +156,72 @@
             </p>
             <div class="image-container">
                 <figure>
-                    <img src="task34.png">
-                    <figcaption>With the wire frame, without normals</figcaption>
+                    <img src="CBbunny_H_1_1.png">
+                    <figcaption>Hemisphere sampling, 1 camera ray per pixel, 1 sample per area light</figcaption>
                 </figure>
                 <figure>
-                    <img src="task35.png">
-                    <figcaption>With the wire frame, without normals</figcaption>
+                    <img src="CBbunny_H_16_8.png">
+                    <figcaption>Hemisphere sampling, 16 camera rays per pixel, 8 samples per area light</figcaption>
                 </figure>
                 <figure>
-                    <img src="task31.png">
-                    <figcaption>With the wire frame, with normals</figcaption>
+                    <img src="CBbunny_H_64_32.png">
+                    <figcaption>Hemisphere sampling, 64 camera rays per pixel, 32 samples per area light</figcaption>
                 </figure>
                 <figure>
-                    <img src="task32.png">
-                    <figcaption>Without the wire frame, with normals</figcaption>
+                    <img src="CBbunny_Imp_1_1.png">
+                    <figcaption>Importance sampling, 1 camera ray per pixel, 1 sample per area light</figcaption>
                 </figure>
                 <figure>
-                    <img src="task33.png">
-                    <figcaption>Incorrect implementation with the normal pointing the opposite way</figcaption>
+                    <img src="CBbunny_Imp_16_8.png">
+                    <figcaption>Importance sampling, 16 camera rays per pixel, 8 samples per area light</figcaption>
+                </figure>
+                <figure>
+                    <img src="CBbunny_Imp_64_32.png">
+                    <figcaption>Importance sampling, 64 camera rays per pixel, 32 samples per area light</figcaption>
                 </figure>
             </div>
             <p>
-                These images show the difference when we normalize the vertices and don't normalize the vertices. We also included what it looked like if you calculated the normals in the opposite direction for fun.
+                The images above show the difference between hemisphere sampling and importance sampling varied at different sampling rates.
             </p>
+            <h3>Comparisons With Different Amount of Light Rays</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part3l1.png">
+                    <figcaption>1 light ray</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l4.png">
+                    <figcaption>4 light rays</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l16.png">
+                    <figcaption>16 light rays</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l64.png">
+                    <figcaption>64 light rays</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l1_2.png">
+                    <figcaption>1 light ray</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l4_2.png">
+                    <figcaption>4 light rays</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l16_2.png">
+                    <figcaption>16 light rays</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l64_2.png">
+                    <figcaption>64 light rays</figcaption>
+                </figure>
+            </div>
+            <h3>Comparisons Between Hemisphere Sampling and Importance Sampling</h3>
+            <p>
+                When looking at the qualitative differences between hemisphere sampling and importance sampling, it is very clear that importance sampling converges to the true image much faster. When we set both to have a sampling rate of 1 and 1 light ray, importance sampling still clearly shows the bunny along with the colors and shadows of the room. In hemisphere sampling however, it mainly looks like a bunch of random white dots, with the exception of the shadow of the bunny. When looking at 16 samples and 8 rays, importance sampling already looks extremely good, while hemisphere sampling has clear artifacting with dots of black still scattered around. Lastly, we have a sampling rate of 64 wit 32 light rays. We can see that with importance sampling, the rendered image looks near perfect (notice the shadows compared to the previous rates). In comparison, although hemisphere sampling looks much better than its predecessors, still has artifacting when compared to importance sampling. The scene is still darker and there is still a black fuzz on the overall image. In terms of  performnce, importance sampling ran much faster than hemisphere sampling. This is due largely because of importance sampling not needing to cast rays if we know the light is behind the surface at the hit point, hence saving computation. In general, importance sampling vastly outperforms hemisphere sampling and needs much fewer samples to have higher quality images.
+            </p> 
         </section>
 
         <section id="section4">
