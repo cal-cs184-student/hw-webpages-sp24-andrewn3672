@@ -229,31 +229,94 @@
             <p>
                 In our implementation of edge flip, we started by first defining all of the elements of the current existing triangles based on the chosen edge. We will call one triangle abc and the second triangle cbd. The half edges of abc are retrieved from taking the halfedge of e0 (the inputted edge) and calling it bc. We then iterate through the halfedgeiter to label ca then ab. We can then get vertices for abc by getting vertex a from ab, vertex b from bc, and vertex c from ca. Finally, we can get the face for abc from bc. For cbd, we do it in the same way, but we get the twin of bc to get cb. We then get the half edges for bd and dc. Vertex d is taken from dc. Lastly, we get the face for cbd from cb. We do not need to get the edges for anything other than the original one we are flipping because that will be the only edge we will be “moving”.
             </p>
-            <img class="solo-image" src="task4explain.png">
-            <p>
-                The above image is how we will be flipping the triangle. We will translate abc to be dab, and cbd to adc. This means ca, ab, bd, and dc will be nearly the same other than updating it’s next pointer. We first look to update the halfedges for the new triangle. To do this, we translate cb to turn into da. We update da by da->setNeighbors(ab, cb, d, e0, abc). We know in the new triangle, da points to ab, and our twin will still be cb which later becomes “ad” but is still the same object. We set the vertex as d since that is where this halfedge will come out of. We will also treat abc as dab, but will also just be the same object. We then update ab to point to bd and bd to point to da. We also make sure their respective face corresponds to abc and everything else is the same. The second triangle we be translated in the same way. We can then reference cb as ad. To update ad we do essentially the same thing by ad->setNeighbors(dc, da, a, e0, cbd). This makes it so our next halfedge is dc, we essentially keep the same twin which is da (bc), keep the same edge, and treat our original triangle of cbd but can view it as adc. We then update dc and ca to have the correct next (ca and ad respectively) and face (cbd/adc). Next we want to make sure that all of the vertices are pointing to a correct half edge. In this case we made a point to ab, b point to bd, c point to ca, and d point to da. Similarly, we have to do the same for the faces. We set dab(abc) to da and cbd(adc) to ad. Finally, we update the current edges halfedge to point to da to ensure it is correctly pointing to one of its half edges. The key thing to notice in our implementation is we wanted to make as minimal updates as possible. We found that the general direction of all the other edges (the one that wasn’t originally selected) were already correct and only need to have their next and face updated. This made it so we needed to modify less pointers and were less prone to bugs. This made implementation easier to visualize and no bugs were encountered.
-            </p>
+            <h3>isAccumBounces Disabled, 1024 Samples Per Pixel, 4 Light Rays</h3>
             <div class="image-container">
                 <figure>
-                    <img src="task41.png">
-                    <figcaption>Without normals</figcaption>
+                    <img src="part4b4m0.png">
+                    <figcaption>Max Ray Depth 0</figcaption>
                 </figure>
                 <figure>
-                    <img src="task42.png">
-                    <figcaption>With normals</figcaption>
+                    <img src="part4b4m1.png">
+                    <figcaption>Max Ray Depth 1</figcaption>
                 </figure>
                 <figure>
-                    <img src="task43.png">
-                    <figcaption>Without normals</figcaption>
+                    <img src="part4b4m2.png">
+                    <figcaption>Max Ray Depth 2</figcaption>
                 </figure>
                 <figure>
-                    <img src="task44.png">
-                    <figcaption>With normals</figcaption>
+                    <img src="part4b4m3.png">
+                    <figcaption>Max Ray Depth 3</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b4m4.png">
+                    <figcaption>Max Ray Depth 4</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b4m5.png">
+                    <figcaption>Max Ray Depth 5</figcaption>
                 </figure>
             </div>
             <p>
-                The images above demonstrate what the wire mesh looks like when flipping the edges and how it looks with vertex normals.
+                In the second bounce of light, we can see how the light on all the objects are reflected to have colored shadows and shading. The second bounce is also much dimmer than the first bounce because of the energy dissipating with each bounce, but still contributes to the overall final image. When we look at just bounce 1, we can see that there is no light bouncing off of the walls on the side which means it is not yet reflecting on the bunny. When we add the second bounce to the total sum of bounces, this adds the color that reflects onto the roof, bunny, and floors. In the next section, we can clearly see how the second bounce contributes to all of the colored lighting, and lighting in general. The third bounce of light is very similar to the second bounce, but is even dimmer since this additional bounce has even more energy dissipating. This still contributes to the final accumulated image by making the image brighter, and making the reflections of the colors, floor, and roof even stronger. These bounces contribute to the quality of the rendered image much better than rasterization because we accurately are calculating each ray of light that is reflecting off of each surface at each bounce, giving extremely accurate and high quality renderings compared to pure rasterization.
             </p>
+            <h3>isAccumBounces Enabled, 1024 Samples Per Pixel, 4 Light Rays</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b5m0.png">
+                    <figcaption>Max Ray Depth 0</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b5m1.png">
+                    <figcaption>Max Ray Depth 1</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b5m2.png">
+                    <figcaption>Max Ray Depth 2</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b5m3.png">
+                    <figcaption>Max Ray Depth 3</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b5m4.png">
+                    <figcaption>Max Ray Depth 4</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b5m5.png">
+                    <figcaption>Max Ray Depth 5</figcaption>
+                </figure>
+            </div>
+            <h3>Various Sample Per Pixel Rates, 4 Light Rays, 5 Bounces</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b7s1.png">
+                    <figcaption>1 Sample Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s2.png">
+                    <figcaption>2 Samples Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s4.png">
+                    <figcaption>4 Samples Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s8.png">
+                    <figcaption>8 Samples Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s16.png">
+                    <figcaption>16 Samples Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s64.png">
+                    <figcaption>64 Samples Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s1024.png">
+                    <figcaption>1024 Samples Per Pixel</figcaption>
+                </figure>
+            </div>
         </section>
 
         <section id="section5">
