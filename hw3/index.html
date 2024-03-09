@@ -67,7 +67,7 @@
         <section id="overview">
             <h2>Overview</h2>
             <p>
-                In this assignment, we implemented algorithms and techniques to display meshes. In section 1 of the assignment, we implemented Bezier curves and surfaces utilizing De Casteljau’s subdivision algorithm. Task 1 allowed us to draw curves using a specified number of control points, and we could see how the curve and point changed when we moved the control points around and messed around with the t value. Task 2 was an extension of task 1 where we moved from working with 2d Bezier curves to 3d Bezier surfaces. The high-level idea of task 2 was identical to task 1 and this allowed us to generate more complex 3d objects such as a teapot. In section 2 of the assignment, we worked directly with the halfedge data structure to implement powerful functionality. In task 3, we traversed the surrounding triangles that were connected to the vertex to find the normal of the vertex and allow for better shading for smooth surfaces. We implemented edge flipping in task 4 which becomes very useful for subdivision in task 6. This task can be very tricky if we do not carefully keep track of what pointers we are working with since the heart of the task was to rearrange the existing pointers to "flip" the edge in the mesh. Similarly in task 5, we implemented task splitting which is also important for subdivision. This task ends up being trickier than task 4 as not only do we need to keep track of existing pointers, but we also have to create new ones and assign everything to each other appropriately. In both task 4 and 5, we found it extremely important to draw out diagrams for how we envisioned the pointer assignment would be, and name variables based on our drawn diagrams to abstract all of the pointers. This allowed us to implement these operations with no bugs and allowed us to implement task 6 cleanly. Lastly, implementing task 6 allowed us to upsample a given mesh and make it look much smoother than the original. This is because we are constantly subdividing the large triangles into smaller ones to allow us to define the features much more clearly. An important thing we learned from this task is that you may lose the original shape you had if the edges of the triangles are not symmetrical or in the way you want it to be. This is because subdivision utilizes splitting the original existing edges and flipping them, then moving the position of the vertices to round out the mesh. There is also a good stopping point when upsampling because after a certain level, you can hardly see a difference, and we are creating many more triangles which ends up destroying the performance of the programming. This can be clearly seen with each level of subdivision, the framerate of the program drops.
+                tbd
             </p>
         </section>
 
@@ -152,7 +152,10 @@
         <section id="section3">
             <h2>Part 3</h2>
             <p>
-                For an initial vertex v0, there can be an arbitrary amount of surrounding triangles. We start with v0’s halfedge. If we iterate through the halfedges using h = h->next(), we will traverse the sides of one of the triangles that surrounds v0. As we traverse the halfedges, we collect the two vertices that make up the triangle we are traversing. We call the first one we traverse v1 and the second one v2. The vectors (v1 - v0) and (v2 - v0) correspond to the two sides of the triangle that intersect with v0. These two vectors lie in the plane occupied by the triangle. If we take the cross product (v1 - v0) x (v2 - v0), we will get the vector that is normal to the plane of the triangle. The length of this vector is equal to the parallelogram that is spanned by (v1 - v0) and (v2 - v0). The area of the triangle is therefore ½ times the area of this parallelogram. We take the cross product in that order (i.e., (v1 - v0) x (v2 - v0) instead of (v2 - v0) x (v1 - v0)) because the halfedges are oriented such that the direction of the normal to the triangle they surround can be found with the right-hand rule. We go from triangle to triangle around v0 by taking h = h->next()->next()->twin(). For each triangle, we add (½ * (v1 - v0) x (v2 - v0)) to the running area-weighted sum of normals. After we return back to the original halfedge of the first triangle, we stop iterating, divide the area-weighted sum of normals by its norm, and return it. This returned vector is equivalently the area-weighted average of the normals of the surrounding triangles.             
+                For our implementation of direct lighting with uniform hemisphere sampling, we first calculate the point of intersection of the ray. We then obtain Wo which is the outgoing direction of the given ray which we want to convert to object space as well. Essentially, the opposite direction of the ray by taking the negative of it and converting it from world to object. We then create a total sum which is initialized to a 0 Vector3D called Lr. Once we have this information, we can loop through the total amount of ray samples specified. The first value we want to calculate in the loop is Wi. This is done by sampling from the hemisphere sampler, which samples a ray uniformly from every direction in the hemisphere. With this Wi, we want to convert this from object to world to be able to create a ray with this. We then create the new ray with the hit point and this value. We set the min_t of this new ray to be EPS_F to alleviate numerical precision issues that cause the ray to intersect where it started from. We then check this newly created ray to see if it intersects with anything else with bvh->intersect. If we do get a hit, we want to get the emission of the object it intersects with. This value is the Li value. At this point, we have all the values we need for the Monte Carlo estimator. We can get the f value of the passed-in intersection object by calling isect.bsdf->f(wo, wi). We multiply this by Li and the cosine, in which the cosine is just the z value of Wi. We iterate through all of the samples and add the f * Li * costheta to the total sum of Lr. At the end of all the samples, we divide this by the total number of samples. Additionally, we can move dividing by the pdf to the outside because everything is sampled with uniform probably of 1/2pi in the hemisphere. This is equivalent to multiplying the total sum by 2pi. This means the return value looks like (1/ N) * Lr * 2 * pi.       
+            </p>
+            <p>
+                Our implementation of direct lighting with importance sampling is very similar to hemisphere sampling, but we will sample the lights directly instead of randomly looking at everything uniformly. Additionally, if we know something is obstructing the view from the hit point and the light source, there is no need to cast this ray and save computation. We calculate the hit point and Wo in the same way as hemisphere sampling. We then initialize another vector3D of zeroes to be the final value we will return. We will then iterate through the lights in the scene. To determine how many times we want to sample each scene light, we check if the current scene light is a delta light or not. If it is, we set it to sample once, otherwise, we sample ns_area_light times. This is because if the scene light is a point light source, all of the samples will be the same, which saves time and computation. We then also want to have a running count with Lr again. We define three new variables which will be wi, distToLight, and pdf. We then pass these variables into the current scene light sampler to get Li and have the previous three variables assigned. We know the current hit point with the sampled wi is behind if the dot of wi and the normal of the isect is less than or equal to zero. If this value is greater than 0, that means we are not behind and we can create a new ray with the hit point and wi. Note, that the sampled wi is already in world coordinates so we do not need to convert it. We then set this new ray min_t to EPS_F and the max_t to be the distToLight - EPS_F to once again, alleviate the numerical precision issues. We then want to make sure our current hit point is not blocked by anything. We do this by calling bvh->intersect on this newly created ray, and if it returns true, that means we are blocked by something. Otherwise we are not and can calculate similar to hemisphere sampling. We get the f with isect.bsdf->f(wo, w2o * wi). We want to make sure we convert wi to object space. We also get the cosine value by converting wi to object coordinates and taking its z value. We then add f * Li * costheta /pdf to Lr. Once we are done with the samples in the current scene light, we add Lr /N to color. We repeat this for all of the scene lights then return the final color value.
             </p>
             <div class="image-container">
                 <figure>
@@ -220,15 +223,64 @@
             </div>
             <h3>Comparisons Between Hemisphere Sampling and Importance Sampling</h3>
             <p>
-                When looking at the qualitative differences between hemisphere sampling and importance sampling, it is very clear that importance sampling converges to the true image much faster. When we set both to have a sampling rate of 1 and 1 light ray, importance sampling still clearly shows the bunny along with the colors and shadows of the room. In hemisphere sampling however, it mainly looks like a bunch of random white dots, with the exception of the shadow of the bunny. When looking at 16 samples and 8 rays, importance sampling already looks extremely good, while hemisphere sampling has clear artifacting with dots of black still scattered around. Lastly, we have a sampling rate of 64 with 32 light rays. We can see that with importance sampling, the rendered image looks near perfect (notice the shadows compared to the previous rates). In comparison, although hemisphere sampling looks much better than its predecessors, still has artifacting when compared to importance sampling. The scene is still darker and there is still a black fuzz on the overall image. In terms of  performnce, importance sampling ran much faster than hemisphere sampling. This is due largely because of importance sampling not needing to cast rays if we know the light is behind the surface at the hit point, hence saving computation. In general, importance sampling vastly outperforms hemisphere sampling and needs much fewer samples to have higher quality images.
+                When looking at the qualitative differences between hemisphere sampling and importance sampling, it is very clear that importance sampling converges to the true image much faster. When we set both to have a sampling rate of 1 and 1 light ray, importance sampling still clearly shows the bunny along with the colors and shadows of the room. In hemisphere sampling, however, it mainly looks like a bunch of random white dots, with the exception of the shadow of the bunny. When looking at 16 samples and 8 rays, importance sampling already looks extremely good, while hemisphere sampling has clear artifacting with dots of black still scattered around. Lastly, we have a sampling rate of 64 with 32 light rays. We can see that with importance sampling, the rendered image looks near perfect (notice the shadows compared to the previous rates). In comparison, although hemisphere sampling looks much better than its predecessors, still has artifacting when compared to importance sampling. The scene is still darker and there is still a black fuzz on the overall image. In terms of performance, importance sampling ran much faster than hemisphere sampling. This is due largely because of importance sampling not needing to cast rays if we know the light is behind the surface at the hit point or is a point light source and only needing to be sampled once hence saving computation. In general, importance sampling vastly outperforms hemisphere sampling and needs much fewer samples to have higher-quality images.
             </p> 
         </section>
 
         <section id="section4">
             <h2>Part 4</h2>
             <p>
-                In our implementation of edge flip, we started by first defining all of the elements of the current existing triangles based on the chosen edge. We will call one triangle abc and the second triangle cbd. The half edges of abc are retrieved from taking the halfedge of e0 (the inputted edge) and calling it bc. We then iterate through the halfedgeiter to label ca then ab. We can then get vertices for abc by getting vertex a from ab, vertex b from bc, and vertex c from ca. Finally, we can get the face for abc from bc. For cbd, we do it in the same way, but we get the twin of bc to get cb. We then get the half edges for bd and dc. Vertex d is taken from dc. Lastly, we get the face for cbd from cb. We do not need to get the edges for anything other than the original one we are flipping because that will be the only edge we will be “moving”.
+                tbd
             </p>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b2BunnyGlobal.png">
+                    <figcaption>CBbunny</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2SpheresGlobal.png">
+                    <figcaption>CBspheres_lambertian</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2DragonGlobal.png">
+                    <figcaption>dragon</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2BenchGlobal.png">
+                    <figcaption>bench</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2BlobGlobal.png">
+                    <figcaption>blob</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2Bunny2Global.png">
+                    <figcaption>bunny2</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2WallEGlobal.png">
+                    <figcaption>wall-e</figcaption>
+                </figure>
+            </div>
+            <h3>Direct vs Indirect, 1024 Samples Per Pixel, 4 Light Rays, Max Depth of 5 for Indirect</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b3BunnyDirect.png">
+                    <figcaption>CBbunny Direct</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b3BunnyIndirect.png">
+                    <figcaption>CBbunny Indirect</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b3SpheresDirect.png">
+                    <figcaption>CBspheres_lambertian Direct</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b3SpheresIndirect.png">
+                    <figcaption>CBspheres_lambertian Indirect</figcaption>
+                </figure>
+            </div>
             <h3>isAccumBounces Disabled, 1024 Samples Per Pixel, 4 Light Rays</h3>
             <div class="image-container">
                 <figure>
@@ -286,6 +338,33 @@
                     <figcaption>Max Ray Depth 5</figcaption>
                 </figure>
             </div>
+            <h3>Russian Roulette, 1024 Samples Per Pixel, 4 Light Rays</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b6m0.png">
+                    <figcaption>Max Ray Depth 0</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b6m1.png">
+                    <figcaption>Max Ray Depth 1</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b6m3.png">
+                    <figcaption>Max Ray Depth 2</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b6m3.png">
+                    <figcaption>Max Ray Depth 3</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b6m4.png">
+                    <figcaption>Max Ray Depth 4</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b6m100.png">
+                    <figcaption>Max Ray Depth 100</figcaption>
+                </figure>
+            </div>
             <h3>Various Sample Per Pixel Rates, 4 Light Rays, 5 Bounces</h3>
             <div class="image-container">
                 <figure>
@@ -322,11 +401,7 @@
         <section id="section5">
             <h2>Part 5</h2>
             <p>
-                For task 5, we begin by defining all of the relevant information needed from the original two triangles connected to the chosen edge. We will call the first triangle abc and the second triangle cbd. We will define everything in an identical fashion to task 4 where the half edges of abc will be bc, ca, and ab along with getting the edges a, b, and c from the respective half edges. Similar in cbd, we get cb, bd, and dc and get vertex d which is not in the previous triangle. I will use the following diagram to explain how I went about implementing edge split.
-            </p>
-            <img class="solo-image" src="task5explain.png">
-            <p>
-                Before reassigning all of the pointers to form all of the new triangles, we will define all of the elements we need. From the diagram above, we can see we will be forming 2 new faces (triangles), 1 new vertex, and 3 new edges. 3 New edges means we will also need 6 new halfedges (2 halfedges per edge). We will first define a new vertex m, with newVertex(). We want the position of the new vertex to be the midpoint of the two vertices of the original edge which would be b and c in our case. We easily just add the positions of b and c, then divide by 2 to get the midpoint for the position of the new edge. We then define 3 new edges which we will call maEdge, mbEdge, and mdEdge (this will correspond to the visuals above). Additional the old cbEdge in the presplit will be reused and renamed as the mcEdge. We will define 2 new faces as abm and mbd (the two bottom triangles in the diagram). We will then rename abc to be mca, and cbd to be cmd. For the final new elements, we will define the half edges. The new halfedges we will define are am, ma, md, dm, bm, mb, mc, and cm. We will rename bc into mc and cb into cm. This corresponds to making the original edge into the top center edge. Now that we have defined everything to be in terms of what we see in the diagram, we just have to connect all the pieces together. We start off by connecting the half edges of each triangle starting with mca. We will assign the appropriate pointers for mc with mc->setNeighbors(ca, cm, m, mcEdge, mca). We make the next pointer ca and the twin cm. We come out of vertex m, have the edge as mcEdge and are part of the mca face. We do similar assignments for ca and am to form the half edges as seen in the diagram. For ca, we can see that we keep everything the same other than making sure the face corresponds to mca, and that the next pointer points to am. We follow this exact scheme for all of the half edges in cmd, abm, and mbd. Once we have properly assigned all of the pointers for the half edges according to what we see in the diagram, we want to make sure all the vertices are pointing to the correct half edge. We can make the vertex point to any one of it’s half edges and in our case, we decided to make a point to ab, b to bd, c to ca, d to dc, and m to mc. Similarly, we want to assign all of the new edges and faces to any of it’s corresponding half edges. In this case, we choose maEdge to ma, mbEdge to mb, mcEdge to mc, and mdEdge to md. For the faces, we set mca to ca, cmd to dc, abm to ab, and mbd to bd. Our strategy for our implementation was to clearly draw out how we visualized the triangles of the before and after. We are able to arbitrarily label everything since we still know all triangles will follow the same pattern. This allows us to easily visualize how we want to reassign all of our pointers to form the new triangles after the split. Additionally, we wanted to minimize the amount of pointers we had to reassign so similar to edge flip, we kept all of the outer edges practically identical only needing to change it’s next and face pointers. Carefully drawing and labeling all the components of our diagrams made implementation much simpler and less prone to errors since we knew exactly what we wanted to do. This led to no bugs and a correct implementation on the first try. The green arrows in the diagram represent the new half edges we have to create (and edges respectively) and the purple arrows represent reusing the original edge we selected to be part of the top two triangles. This allowed the twin of this edge to stay exactly the same. Because we clearly defined everything, we essentially just had to connect all the pieces together like a puzzle.
+                tbd
             </p>
             <div class="image-container">
                 <figure>
@@ -346,9 +421,6 @@
                     <figcaption>Edge splits and flips with normals</figcaption>
                 </figure>
             </div>
-            <p>
-                The images above demonstrate what the wire mesh looks like when just spliting the edges and both splitting and flipping. We also show it with vertex normals.
-            </p>
         </section>
 
     </main>
