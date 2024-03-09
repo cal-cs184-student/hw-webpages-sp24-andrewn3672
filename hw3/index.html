@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>184 HW2</title>
+    <title>184 HW3</title>
     <style>
         h1 {
             text-align: center;
@@ -48,17 +48,18 @@
 </head>
 <body>
     <header>
-        <h1>CS184 Homework 3: Ray Tracing</h1>
+        <h1>CS184 Homework 3: Pathtracer</h1>
         <h2>Andres Avella and Andrew Nguyen</h2>
         <a href="https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw3/index.html">https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw3/index.html</a>
         <nav>
             <ul>
                 <li><a href="#overview">Overview</a></li>
-                <li><a href="#section1">Part 1</a></li>
-                <li><a href="#section2">Part 2</a></li>
-                <li><a href="#section3">Part 3</a></li>
-                <li><a href="#section4">Part 4</a></li>
-                <li><a href="#section5">Part 5</a></li>
+                <li><a href="#section1">Part 1: Ray Generation and Scene Intersection</a></li>
+                <li><a href="#section2">Part 2: Bounding Volume Hierarchy</a></li>
+                <li><a href="#section3">Part 3: Direct Illumination</a></li>
+                <li><a href="#section4">Part 4: Global Illumination</a></li>
+                <li><a href="#section5">Part 5: Adaptive Sampling</a></li>
+                <li><a href="#collab">Collaboration</a></li>
             </ul>
         </nav>
     </header>
@@ -67,17 +68,20 @@
         <section id="overview">
             <h2>Overview</h2>
             <p>
-                tbd
+                In this assignment, we explored how to implement a pathtracer and the fundamentals of ray tracing. In part 1, we implemented ray generation and scene intersection. In ray generation, we though about it in terms of how view rays in world space and camera space. Given an x and y, we calculate its corresponding x and y in camera space. We then put these x and y into a Vector3D with the z value being -1. We can create a ray with the Vector3D converted to world space to get a ray in world space. To then raytrace a pixel, we iterate over a given number of samples. We first get a sample from the grid sampler and scale the x and y of the point appropriately. We then call our previous generate_ray function and add it’s global illumination to a total. We then normalized this by dividing this sum by the total samples we took to get the color of the pixel. To check for what the generated ray intersects in the scene, we had to implement intersections with the primitives. This this case the primitives were either spheres or triangles. For the triangle, we implemented the Moller Trumbore Algorithm since it is more optimized then simply checking for an intersection and doing line tests. We did a similar thing for the sphere using another algorithm. One issue we have however is that when we check the intersection for rays, we are checking with every primitive, this is extremely slow so we implement an optimization in part 2. This optimization is BVHacceleration. To construct the BVH (Bounding Volume Hierarchy), we want to create bounding boxes such that if a ray doesn’t intersect a certain box, we know we don’t need to check in that direction. The BVH construction ends up being a binary tree where we traverse both left and right, but if we don’t intersect the given child, we no longer need to search there. This makes it so that instead of doing an intersection test with every single primitive, we only check primitives that are in bounding boxes the ray passes through. Next, we want to see what the scene looks like with the proper colors. To start, we focus on direct illumination in part 3. The first important thing is zero-bounce illumination where we just display light from the light source. We then want to display the illumination after the first bounce. To do this, we use hemisphere sampling or importance sampling. In hemisphere sampling, we sample rays in all directions from the given point. We then check to see if the outgoing sampled ray intersects anything and check its emittance. If this ends up being something that doesn’t emit light, this sample goes to waste. We need a ton of samples to reduce the noise. Importance sampling is similar except we only sample rays that are from the light directly so that we reduce the amount of wasted samples. If the point we sample is a point light, we only need to sample once since every subsequent sample will be the same. We also avoid casting rays that are behind the surface at a hit point. This leads to importance sampling being much faster along with needing fewer samples to look good. After implementing direct lighting, the scene still doesn’t look quite correct. That is because the light that bounces off the surfaces from the first bounce also emits light. We then need to implement global illumination which continues to include the N subsequent rays resulting from bounces. We achieve this by creating a recursive function that accumulates the values of each bounce and returns once we reach the depth we want. We also implemented the function such that we can see what the scene looks like with just a specific bounce and not the total accumulated. We can never know how many bounces we need for a given scene so we also incorporate Russian Roulette where each bounce only has a certain probability of continuing which gives a good estimate of the global illumination. Finally, not all pixels need the same amount of samples to look good. Some areas converge faster than others which is why we implement adaptive sampling in part 5. Instead of sampling a fixed number of samples, we concentrate samples on areas with higher noise. We instead give an upper limit for samples and essentially follow an algorithm to check whether a pixel has converged or not and return it early if it has. With all of this combined, we have a pathtracer that can render high-quality and precise images.
             </p>
         </section>
 
         <section id="section1">
-            <h2>Part 1</h2>
+            <h2>Part 1: Ray Generation and Scene Intersection</h2>
             <p>
                 We are given (x, y) pixels in image space. These are the (x, y) pixel coordinates of the image we want to display on the screen. We want to display an image that comes from the view of a camera oriented in the world. We normalize these image pixel coordinates by dividing the x-coordinate by the width of the sample buffer and the y-coordinate by the height of the sample buffer. We now want to transform the normalized image coordinates onto the sensor plane of the camera. To do this, we first translate the center of the image coordinate space onto the center of the sensor plane coordinate space by subtracting 0.5 from both the normalized x- and y-coordinates. After normalizing and shifting, our (x, y) coordinate will exist in the square defined by [-0.5, 0.5] x [-0.5, 0.5]. We want to scale this rectangle according to the vertical and horizontal field of view of the camera. If we define our coordinate space such that the camera is facing in the negative z-direction, and then we choose to place our sensor plane at z = -1, we know that the sensor will be made up of the rectangle defined by [-tan(0.5 * hFov), tan(0.5 * hFov)] x  [-tan(0.5 * vFov), tan(0.5 * vFov)] (where hFov and vFov are the horizontal and vertical fields of view in radians, respectively). We want to map the [-0.5, 0.5] x [-0.5, 0.5] square onto this rectangle. We do this by multiplying our normalized and shifted (x, y) coordinates in the following way: x’ = x * 2 * tan(0.5 * hFov) and y’ = y * 2 * tan(0.5 * vFov). The ray going from the camera’s center of projection to this point is then (x’, y’, -1), since the camera’s center of projection is taken to be the origin in the camera coordinate space. We then rotate the ray using the camera-to-world matrix and set its origin to be the position of the camera’s center of projection in world space. This is the same ray, but it is written in the world coordinate space.
             </p>
+            <p>
+                To check if a ray intersects a triangle, we ran the Moller Trumbore Algorithm We first define E1 to be p2 - p1, E2 to p3 - p1, S to r.o - p1, S1 to cross(r.d, E2) and lastly S2 to cross(S, E1). We then set a scalar which we will call denominator, which is what the final result would be after multiplying the scalar with [dot(S2, E2), dot(S1, S), dot(S2, D)], to 1/ (S1 dot E1). Because we know t, b1, and b2 correspond to x, y, and z of the above vector, we can calculate t to be dot(S2, E2) / denominator, b1 to dot(S1, S) / denominator, and b2 to be dot(S2, D) / denominator. In terms of barycentric weights, we know b1 corresponds to beta, b2 corresponds to gamma, and lastly, alpha is 1 - b1 - b2. We know there is an intersection if t >= 0, alpha is between 0 and 1, beta is between 0 and 1, and gamma is between 0 and 1. We also want to make sure that t is between r.min_t and r.max_t. If this condition is satisfied, we set r.max_t to this t, set isect->n to be alpha * n1 + beta * n2 + gamma * n3, set isect->primitive to this current triangle, and isect->bsdf to get_bsdf().
+            </p>
 			<p>
-				To check if a ray intersects a triangle, we first find the intersection of the ray with the plane that the triangle is in. We parameterize the ray as r(t) = o + t * d, where o is the origin of the ray and d is the direction of the ray. We take the difference of this ray with one of the triangles vertices (r(t) - v). For the value of “t” that defines where r(t) intersects the plane, the vector r(t) - v should be entirely contained within the plane. That is, if we take dot product between the normal vector to the plane and this vector, it should be equal to 0 for the value of “t” that the ray intersects the plane. In other words, we can take the equation N・(r(t) - v) = 0 and solve for “t”, where N is the normal vector to the plane containing the triangle and v is one of the triangles vertices. We plug this value of “t” in the r(t) to obtain the point p that lies on the plane containing the triangle. Then we check if p lies within the bounds of the triangle using the line test. The line test is a little different in three dimensions. In order to perform it, we start with two of the triangle vertices that define the line we want to do the line test for. We will call these two vertices v0 and v1. We also take N, which is the normal vector to the plane containing the triangle. Then we take the cross product N x (v1 - v2). This will be n, the normal vector to the line that is also coplanar with the triangle. Then we take the point p we computed earlier and dot it with n. That is, we have Li = n・p. We compute Li for each of the three sides and make sure they are either all non-negative or all non-positive.  If this is the case, then the point p is inside the triangle. For this check to work properly, we make sure that we take the sides to be the differences of the vertices chosen in any winding order (either clockwise or counter-clockwise). That is, if we are given vertices v1, v2, and v3, our sides will be defined as (v2 - v1), (v3 - v2), and (v1 - v3).
+				In another implementation we had to check if a ray intersects a triangle, we first find the intersection of the ray with the plane that the triangle is in. We parameterize the ray as r(t) = o + t * d, where o is the origin of the ray and d is the direction of the ray. We take the difference of this ray with one of the triangles vertices (r(t) - v). For the value of “t” that defines where r(t) intersects the plane, the vector r(t) - v should be entirely contained within the plane. That is, if we take dot product between the normal vector to the plane and this vector, it should be equal to 0 for the value of “t” that the ray intersects the plane. In other words, we can take the equation N・(r(t) - v) = 0 and solve for “t”, where N is the normal vector to the plane containing the triangle and v is one of the triangles vertices. We plug this value of “t” in the r(t) to obtain the point p that lies on the plane containing the triangle. Then we check if p lies within the bounds of the triangle using the line test. The line test is a little different in three dimensions. In order to perform it, we start with two of the triangle vertices that define the line we want to do the line test for. We will call these two vertices v0 and v1. We also take N, which is the normal vector to the plane containing the triangle. Then we take the cross product N x (v1 - v2). This will be n, the normal vector to the line that is also coplanar with the triangle. Then we take the point p we computed earlier and dot it with n. That is, we have Li = n・p. We compute Li for each of the three sides and make sure they are either all non-negative or all non-positive.  If this is the case, then the point p is inside the triangle. For this check to work properly, we make sure that we take the sides to be the differences of the vertices chosen in any winding order (either clockwise or counter-clockwise). That is, if we are given vertices v1, v2, and v3, our sides will be defined as (v2 - v1), (v3 - v2), and (v1 - v3).
 			</p>
             <div class="image-container">
                 <figure>
@@ -104,7 +108,7 @@
         </section>
 
         <section id="section2">
-            <h2>Part 2</h2>
+            <h2>Part 2: Bounding Volume Hierarchy</h2>
             <p>
                 In our BVH construction algorithm, we begin by iterating through the primitives given by start and end. We retrieve the bounding box primitive, and expand our current bounding box variable, bbox, with the primitive’s bounding box with (*p)->get_bbox(). We also retrieve the centroid of the primitive’s bounding box and add it to a total sum of all the primitives. We also keep track of how many primitives we have iterated over. Once we iterate through the primitives, we divide the sum of the centroids to get the average. We also define our current node with new BVHNode(bbox). In our first case, if the size we got is greater than the max_leaf_size, we know this will be an inner node where we want to split the primitives into left and right children nodes. We get the x, y, and z coordinates from the centroid average which we will use as part of our heuristic. To choose the axis we end up splitting, we simply choose the axis that is the largest. This is found by checking if the extent is greater than the other two axis. For our heuristic, based on the axis we choose to split, we first sort the given start and end list from least to greatest based on the chosen axis. We then iterate over the primitives and once we find a primitive that is greater than or equal to the axis average, we call this the middle and break from the loop. Lastly, we want to make sure that both groups have atleast one primitive in it, otherwise we will enter infinite recursion if one side always has all of the primitives. To combat this, we initialze middle to equal end. If middle ends up equal to start, we increment middle with middle++. If it is equal to end, we call middle--. This prevents all primitives on being on one side. We then make the current node's left and right children the recursive call to construct_bvh with the given left and right vectors. This is done by node->l = construct_bvh(start, middle, max_leaf_size) and node->r = construct_bvh(middle, end, max_leaf_size). We then return the node. In the other case where the amount of primitives passed in is less than or equal to max_leaf_size, we know this will be a leaf node. This means the primitives fit in the node and we do not need to split. All we need to do is set the start and end of the node to the start and end inputs and return the node. This assignment is done with node->start = start and node->end = end.
             </p>
@@ -150,7 +154,7 @@
         </section>
 
         <section id="section3">
-            <h2>Part 3</h2>
+            <h2>Part 3: Direct Illumination</h2>
             <p>
                 For our implementation of direct lighting with uniform hemisphere sampling, we first calculate the point of intersection of the ray. We then obtain Wo which is the outgoing direction of the given ray which we want to convert to object space as well. Essentially, the opposite direction of the ray by taking the negative of it and converting it from world to object. We then create a total sum which is initialized to a 0 Vector3D called Lr. Once we have this information, we can loop through the total amount of ray samples specified. The first value we want to calculate in the loop is Wi. This is done by sampling from the hemisphere sampler, which samples a ray uniformly from every direction in the hemisphere. With this Wi, we want to convert this from object to world to be able to create a ray with this. We then create the new ray with the hit point and this value. We set the min_t of this new ray to be EPS_F to alleviate numerical precision issues that cause the ray to intersect where it started from. We then check this newly created ray to see if it intersects with anything else with bvh->intersect. If we do get a hit, we want to get the emission of the object it intersects with. This value is the Li value. At this point, we have all the values we need for the Monte Carlo estimator. We can get the f value of the passed-in intersection object by calling isect.bsdf->f(wo, wi). We multiply this by Li and the cosine, in which the cosine is just the z value of Wi. We iterate through all of the samples and add the f * Li * costheta to the total sum of Lr. At the end of all the samples, we divide this by the total number of samples. Additionally, we can move dividing by the pdf to the outside because everything is sampled with uniform probably of 1/2pi in the hemisphere. This is equivalent to multiplying the total sum by 2pi. This means the return value looks like (1/ N) * Lr * 2 * pi.       
             </p>
@@ -228,7 +232,7 @@
         </section>
 
         <section id="section4">
-            <h2>Part 4</h2>
+            <h2>Part 4: Global Illumination</h2>
             <p>
                 tbd
             </p>
@@ -399,28 +403,42 @@
         </section>
 
         <section id="section5">
-            <h2>Part 5</h2>
+            <h2>Part 5: Adaptive Sampling</h2>
             <p>
                 tbd
             </p>
             <div class="image-container">
                 <figure>
-                    <img src="task51.png">
-                    <figcaption>Only edge splits without normals</figcaption>
+                    <img src="part5b2Bunny.png">
+                    <figcaption>CBbunny</figcaption>
                 </figure>
                 <figure>
-                    <img src="task52.png">
-                    <figcaption>Only edge splits with normals</figcaption>
+                    <img src="part5b2Bunny_rate.png">
+                    <figcaption>CBbunny Rate</figcaption>
                 </figure>
                 <figure>
-                    <img src="task53.png">
-                    <figcaption>Edge splits and flips without normals</figcaption>
+                    <img src="part5b2Spheres.png">
+                    <figcaption>CBspheres_lambertian</figcaption>
                 </figure>
                 <figure>
-                    <img src="task54.png">
-                    <figcaption>Edge splits and flips with normals</figcaption>
+                    <img src="part5b2Spheres_rate.png">
+                    <figcaption>CBspheres_lambertian Rate</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5b2Wall-E.png">
+                    <figcaption>wall-e</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5b2Wall-E_rate.png">
+                    <figcaption>wall-e rate</figcaption>
                 </figure>
             </div>
+        </section>
+        <section id="collab">
+            <h2>Collaboration</h2>
+            <p>
+                Because we are roommates, we were able to pair program very easily throughout the whole project. We would take turns programming on the same device, and bounce ideas off of each other. For the most part, we did all of the parts of the project equally together. There were sections where one partner understood the task at hand more than the other and took charge, but made sure we both understood what was happening by the end of it. With this, we were able to reduce bugs and figure out complex ideas more quickly. We did have issues however when we were both confused and didn't really know how to proceed so we both reinforced the wrong ideas occasionally. This led to us having to redo parts sometimes to fix issues that arose later on. Overall, we were able to learn a lot from each other, and help reduce bugs, especially when it came to technical bugs not related to the assignment such as assigning variables and incrementing. Most importantly, we were able to iron out any confusion either of us had by explaining to one another and reexplaining lecture slides that were relevant. We also learned it was best to work on things together since all of the parts tie closely together so it was crucial we understood every part of the project.
+            </p>
         </section>
 
     </main>
