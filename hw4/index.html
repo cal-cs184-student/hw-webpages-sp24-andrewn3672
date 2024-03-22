@@ -1,7 +1,463 @@
 <html>
-	<head>
-	</head>
-	<body>
-		Homework 4 index.html here
-	</body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>184 HW4</title>
+    <style>
+        h1 {
+            text-align: center;
+        }
+        h2 {
+            text-align: center;
+        }
+        h3 {
+            text-align: center;
+        }
+        .solo-image {
+            max-width: 45%; 
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .image-container img {
+            max-width: 100%; 
+       
+            margin: 10px; 
+        }
+        .image-container figcaption {
+            text-align: center;
+            width: 100%; 
+        }
+        .image-container figure {
+            display: inline-block;
+            max-width: 45%; 
+            margin: 10px;
+        }
+        figure{
+            display: inline-block;
+        }
+                
+    </style>
+</head>
+<body>
+    <header>
+        <h1>CS184 Homework 4: Cloth Sim</h1>
+        <h2>Andres Avella and Andrew Nguyen</h2>
+        <a href="https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw4/index.html">https://cal-cs184-student.github.io/hw-webpages-sp24-andrewn3672/hw4/index.html</a>
+        <nav>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#section1">Part 1: Masses and Springs</a></li>
+                <li><a href="#section2">Part 2: Simulation via Numerical Integration</a></li>
+                <li><a href="#section3">Part 3: Handling Collisions with Other Objects</a></li>
+                <li><a href="#section4">Part 4: Handling Self-Collisions</a></li>
+                <li><a href="#section5">Part 5: Shaders</a></li>
+                <li><a href="#collab">Collaboration</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>
+                In this assignment, we explored how to implement a pathtracer and the fundamentals of ray tracing. In part 1, we implemented ray generation and scene intersection. In ray generation, we though about it in terms of how view rays in world space and camera space. Given an x and y, we calculate its corresponding x and y in camera space. We then put these x and y into a Vector3D with the z value being -1. We can create a ray with the Vector3D converted to world space to get a ray in world space. To then raytrace a pixel, we iterate over a given number of samples. We first get a sample from the grid sampler and scale the x and y of the point appropriately. We then call our previous generate_ray function and add it’s global illumination to a total. We then normalized this by dividing this sum by the total samples we took to get the color of the pixel. To check for what the generated ray intersects in the scene, we had to implement intersections with the primitives. This this case the primitives were either spheres or triangles. For the triangle, we implemented the Moller Trumbore Algorithm since it is more optimized then simply checking for an intersection and doing line tests. We did a similar thing for the sphere using another algorithm. One issue we have however is that when we check the intersection for rays, we are checking with every primitive, this is extremely slow so we implement an optimization in part 2. This optimization is BVHacceleration. To construct the BVH (Bounding Volume Hierarchy), we want to create bounding boxes such that if a ray doesn’t intersect a certain box, we know we don’t need to check in that direction. The BVH construction ends up being a binary tree where we traverse both left and right, but if we don’t intersect the given child, we no longer need to search there. This makes it so that instead of doing an intersection test with every single primitive, we only check primitives that are in bounding boxes the ray passes through. Next, we want to see what the scene looks like with the proper colors. To start, we focus on direct illumination in part 3. The first important thing is zero-bounce illumination where we just display light from the light source. We then want to display the illumination after the first bounce. To do this, we use hemisphere sampling or importance sampling. In hemisphere sampling, we sample rays in all directions from the given point. We then check to see if the outgoing sampled ray intersects anything and check its emittance. If this ends up being something that doesn’t emit light, this sample goes to waste. We need a ton of samples to reduce the noise. Importance sampling is similar except we only sample rays that are from the light directly so that we reduce the amount of wasted samples. If the point we sample is a point light, we only need to sample once since every subsequent sample will be the same. We also avoid casting rays that are behind the surface at a hit point. This leads to importance sampling being much faster along with needing fewer samples to look good. After implementing direct lighting, the scene still doesn’t look quite correct. That is because the light that bounces off the surfaces from the first bounce also emits light. We then need to implement global illumination which continues to include the N subsequent rays resulting from bounces. We achieve this by creating a recursive function that accumulates the values of each bounce and returns once we reach the depth we want. We also implemented the function such that we can see what the scene looks like with just a specific bounce and not the total accumulated. We can never know how many bounces we need for a given scene so we also incorporate Russian Roulette where each bounce only has a certain probability of continuing which gives a good estimate of the global illumination. Finally, not all pixels need the same amount of samples to look good. Some areas converge faster than others which is why we implement adaptive sampling in part 5. Instead of sampling a fixed number of samples, we concentrate samples on areas with higher noise. We instead give an upper limit for samples and essentially follow an algorithm to check whether a pixel has converged or not and return it early if it has. With all of this combined, we have a pathtracer that can render high-quality and precise images.
+            </p>
+        </section>
+
+        <section id="section1">
+            <h2>Part 1: Masses and Springs</h2>
+            <p>
+                In this part of the project, we constructed a grid of masses and springs. We first determined the dx and dy so that when we iterate over the points for height and width, we evenly spread out the position of each mass pointer properly. If the orientation of the cloth is horizontal, we make the y value of the point masses 1 for all of them. We then make the x position of a given point mass j * dx and the z i * dy. Otherwise, we get a random offset from -1/1000-1/1000 and set the z of the point mass to this. The x stays the same and y is set to i * dy. In both cases, we just emplace_back the current point to the back so it is in row major order. We then iterate over the pinned vector and set the point mass at the given positions to true. For the creation of the springs, we created a helper to check if a given x and y and its added dx and dy values are in bounds of the grid. If not, we do nothing, otherwise we create the spring and add it to our vector. The arguments of the helper are x, y, dx, dy, and spring type. This makes it very easy to iterate over all the points for height and width and just call our helper at the given point with the correct arguments to construct the springs. With this, we have created our grid.
+            </p>
+        
+			<h3>Initial Configuration: KS 5000</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part1b11.png">
+                </figure>
+                <figure>
+                    <img src="part1b12.png">
+                </figure>
+                <figure>
+                    <img src="part1b13.png">
+                </figure>
+            </div>
+
+			<h3>Different Constraints</h3>
+			<div class="image-container">
+                <figure>
+                    <img src="part1b21.png">
+					<figcaption>No Shearing</figcaption>
+                </figure>
+                <figure>
+                    <img src="part1b22.png">
+					<figcaption>With Shearing</figcaption>
+                </figure>
+                <figure>
+                    <img src="part1b13.png">
+					<figcaption>All Constraints</figcaption>
+                </figure>
+            </div>
+
+        </section>
+
+        <section id="section2">
+            <h2>Part 2: Simulation via Numerical Integration</h2>
+            <p>
+                Changing the ks value causes the cloth to be much more rigid or droopy. With a really low ks value, the cloth droops down really low and doesn’t flow much when it is dropping. When looking at the final resting state, you can clearly see how much lower it hangs from the two pinned points. With the very high ks value of 100000, it’s almost like a rigid piece of paper just slowly flowing down with near to no creases forming. In the default 5000 ks value, you can clearly see more creases within the cloth and it is wavy when it is falling down. For a low ks value of 100, it definitely has the lowest point as it sags down the most. When it is falling, it seems like it is falling a bit faster and has less flow than 5000. To generalize, the higher the ks value, the more rigid the cloth is.
+            </p>
+
+            <div class="image-container">
+				<figure>
+					<img src="part2ks5000.png">
+					<figcaption>Default (KS 5000)</figcaption>
+				</figure>
+				<figure>
+                    <img src="part2ks100.png">
+                    <figcaption>KS 100</figcaption>
+                </figure>
+				<figure>
+                    <img src="part2ks100000.png">
+                    <figcaption>KS 100000</figcaption>
+                </figure>
+			</div>
+			<p>
+                When changing the values for density, a lower density led to a much stiffer cloth, and higher density lead to droopy cloth. When the cloth goes from start to rest with a density value of 1, there is very little creases or wave effects on the cloth as it falls. At the default density of 15, there is more ripples within the cloth as it falls and noticeable creases. Finally for a higher density of 100, more creases form as the cloth is falling and the creases are noticeably deeper compared to the other values. The lower the density, the stiffer the cloth is.
+            </p>
+
+            <div class="image-container">
+				<figure>
+					<img src="part2dens15.png">
+					<figcaption>Default (Density 15)</figcaption>
+				</figure>
+				<figure>
+                    <img src="part2dens1.png">
+                    <figcaption>Density 1</figcaption>
+                </figure>
+				<figure>
+                    <img src="part2dens100.png">
+                    <figcaption>Density 100</figcaption>
+                </figure>
+			</div>
+
+			<p>
+                When changing the values of damping, it changes how much forces affect the cloth. Because damping directly ties to the lost of energy, having 0% damping makes it so the cloth never reaches a resting state and the energy of the forces makes it so the cloth is always swaying and having the ripple effect on the cloth. When you first start the simulation at 0%, the cloth also aggressively swings up down super high and moves quite fast. On the opposite side, having 100% damping causes the cloth to get to rest super slowly, and the cloth doesn’t ripple as it’s approaching the resting state. At the standard of 20%, it has a combination of both described where it falls and ripples as it falls, and isn’t super slow, but also not super fast. Because damping doesn’t relate to the actual physical properties of the cloth, the final resting state will eventually be the same if the damping is not 0%.
+            </p>
+
+            <div class="image-container">
+				<figure>
+					<img src="part2damp20.png">
+					<figcaption>Default (Damping 20%)</figcaption>
+				</figure>
+				<figure>
+                    <img src="part2damp0.png">
+                    <figcaption>Damping 0%</figcaption>
+                </figure>
+				<figure>
+                    <img src="part2damp100.png">
+                    <figcaption>Damping 100%</figcaption>
+                </figure>
+			</div>
+			<h3>Cloth with 4 Pinned Points (Default Settings)</h3>
+			<img src="part2pinned4normal2.png" class="solo-image">
+        </section>
+
+        <section id="section3">
+            <h2>Part 3: Direct Illumination</h2>
+            <p>
+                For our implementation of direct lighting with uniform hemisphere sampling, we first calculate the point of intersection of the ray. We then obtain Wo which is the outgoing direction of the given ray which we want to convert to object space as well. Essentially, the opposite direction of the ray by taking the negative of it and converting it from world to object. We then create a total sum which is initialized to a 0 Vector3D called Lr. Once we have this information, we can loop through the total amount of ray samples specified. The first value we want to calculate in the loop is Wi. This is done by sampling from the hemisphere sampler, which samples a ray uniformly from every direction in the hemisphere. With this Wi, we want to convert this from object to world to be able to create a ray with this. We then create the new ray with the hit point and this value. We set the min_t of this new ray to be EPS_F to alleviate numerical precision issues that cause the ray to intersect where it started from. We then check this newly created ray to see if it intersects with anything else with bvh->intersect. If we do get a hit, we want to get the emission of the object it intersects with. This value is the Li value. At this point, we have all the values we need for the Monte Carlo estimator. We can get the f value of the passed-in intersection object by calling isect.bsdf->f(wo, wi). We multiply this by Li and the cosine, in which the cosine is just the z value of Wi. We iterate through all of the samples and add the f * Li * costheta to the total sum of Lr. At the end of all the samples, we divide this by the total number of samples. Additionally, we can move dividing by the pdf to the outside because everything is sampled with uniform probably of 1/2pi in the hemisphere. This is equivalent to multiplying the total sum by 2pi. This means the return value looks like (1/ N) * Lr * 2 * pi.       
+            </p>
+            <p>
+                Our implementation of direct lighting with importance sampling is very similar to hemisphere sampling, but we will sample the lights directly instead of randomly looking at everything uniformly. Additionally, if we know something is obstructing the view from the hit point and the light source, there is no need to cast this ray and save computation. We calculate the hit point and Wo in the same way as hemisphere sampling. We then initialize another vector3D of zeroes to be the final value we will return. We will then iterate through the lights in the scene. To determine how many times we want to sample each scene light, we check if the current scene light is a delta light or not. If it is, we set it to sample once, otherwise, we sample ns_area_light times. This is because if the scene light is a point light source, all of the samples will be the same, which saves time and computation. We then also want to have a running count with Lr again. We define three new variables which will be wi, distToLight, and pdf. We then pass these variables into the current scene light sampler to get Li and have the previous three variables assigned. We know the current hit point with the sampled wi is behind if the dot of wi and the normal of the isect is less than or equal to zero. If this value is greater than 0, that means we are not behind and we can create a new ray with the hit point and wi. Note, that the sampled wi is already in world coordinates so we do not need to convert it. We then set this new ray min_t to EPS_F and the max_t to be the distToLight - EPS_F to once again, alleviate the numerical precision issues. We then want to make sure our current hit point is not blocked by anything. We do this by calling bvh->intersect on this newly created ray, and if it returns true, that means we are blocked by something. Otherwise we are not and can calculate similar to hemisphere sampling. We get the f with isect.bsdf->f(wo, w2o * wi). We want to make sure we convert wi to object space. We also get the cosine value by converting wi to object coordinates and taking its z value. We then add f * Li * costheta /pdf to Lr. Once we are done with the samples in the current scene light, we add Lr /N to color. We repeat this for all of the scene lights then return the final color value.
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="CBbunny_H_1_1.png">
+                    <figcaption>Hemisphere sampling, 1 camera ray per pixel, 1 sample per area light</figcaption>
+                </figure>
+                <figure>
+                    <img src="CBbunny_H_16_8.png">
+                    <figcaption>Hemisphere sampling, 16 camera rays per pixel, 8 samples per area light</figcaption>
+                </figure>
+                <figure>
+                    <img src="CBbunny_H_64_32.png">
+                    <figcaption>Hemisphere sampling, 64 camera rays per pixel, 32 samples per area light</figcaption>
+                </figure>
+                <figure>
+                    <img src="CBbunny_Imp_1_1.png">
+                    <figcaption>Importance sampling, 1 camera ray per pixel, 1 sample per area light</figcaption>
+                </figure>
+                <figure>
+                    <img src="CBbunny_Imp_16_8.png">
+                    <figcaption>Importance sampling, 16 camera rays per pixel, 8 samples per area light</figcaption>
+                </figure>
+                <figure>
+                    <img src="CBbunny_Imp_64_32.png">
+                    <figcaption>Importance sampling, 64 camera rays per pixel, 32 samples per area light</figcaption>
+                </figure>
+            </div>
+            <p>
+                The images above show the difference between hemisphere sampling and importance sampling varied at different sampling rates.
+            </p>
+            <h3>Comparisons With Different Amount of Light Rays</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part3l1.png">
+                    <figcaption>1 light ray</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l4.png">
+                    <figcaption>4 light rays</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l16.png">
+                    <figcaption>16 light rays</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l64.png">
+                    <figcaption>64 light rays</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l1_2.png">
+                    <figcaption>1 light ray</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l4_2.png">
+                    <figcaption>4 light rays</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l16_2.png">
+                    <figcaption>16 light rays</figcaption>
+                </figure>
+                <figure>
+                    <img src="part3l64_2.png">
+                    <figcaption>64 light rays</figcaption>
+                </figure>
+            </div>
+            <h3>Comparisons Between Hemisphere Sampling and Importance Sampling</h3>
+            <p>
+                When looking at the qualitative differences between hemisphere sampling and importance sampling, it is very clear that importance sampling converges to the true image much faster. When we set both to have a sampling rate of 1 and 1 light ray, importance sampling still clearly shows the bunny along with the colors and shadows of the room. In hemisphere sampling, however, it mainly looks like a bunch of random white dots, with the exception of the shadow of the bunny. When looking at 16 samples and 8 rays, importance sampling already looks extremely good, while hemisphere sampling has clear artifacting with dots of black still scattered around. Lastly, we have a sampling rate of 64 with 32 light rays. We can see that with importance sampling, the rendered image looks near perfect (notice the shadows compared to the previous rates). In comparison, although hemisphere sampling looks much better than its predecessors, still has artifacting when compared to importance sampling. The scene is still darker and there is still a black fuzz on the overall image. In terms of performance, importance sampling ran much faster than hemisphere sampling. This is due largely because of importance sampling not needing to cast rays if we know the light is behind the surface at the hit point or is a point light source and only needing to be sampled once hence saving computation. In general, importance sampling vastly outperforms hemisphere sampling and needs much fewer samples to have higher-quality images.
+            </p> 
+        </section>
+
+        <section id="section4">
+            <h2>Part 4: Global Illumination</h2>
+            <p>
+                Given an incoming ray from the camera and a primitive it intersects, we want to estimate the amount of light that gets sent back in the direction of that ray after multiple bounces. We do this through recursively calling the function “at_least_one_bounce_radiance().” This function takes in an incoming ray and the primitive that it intersects. It first calls “one_bounce_radiance()”, which takes in this ray and primitive and importance samples the light sources in the scene. This will give an estimate of the light that bounces off of the primitive once and returns in the direction of the original incoming ray in the camera. Now we want to get the light that comes from multiple bounces. To do this, we importance sample a direction according to the BSDF of the primitive the original ray intersects. If the primitive models a material that is glossy, we might imagine sampling a direction whose angle with respect to the surface of the primitive is close to the angle of incidence of the ray (in order to capture the fact that light coming from those general directions will be weighted highly by the reflection function “f”). However, because we are only modeling diffuse materials, we instead simply perform cosine-weighted hemisphere sampling. We weight our sampling by the cosine of the angle with respect to the normal because we want to have a higher likelihood of sampling from directions close to the surface normal (because these are the directions that will result in the most radiant intensity according to Lambert’s cosine law). This sampled direction, referred hereafter as wi, will serve as the direction of the ray that we will recursively call “at_least_one_bounce_radiance()” on. In order to create this ray, we first rotate wi by multiplying it by the object-to-world matrix for the particular primitive the original ray intersected. This is because wi was sampled in a coordinate space such that the z-axis corresponds to the normal vector of the intersected primitive, and we want to make sure that our new ray is in world space. We take the origin of our new ray as p, which is the intersection point of the original ray with the primitive. Effectively, we started with an original ray coming from the camera, r, and the primitive it intersected, isect. For this incoming ray direction and intersection, we importance sampled all the lights in the scene. This step simulates the light that comes from those lights, bounces off the primitive once, and goes directly to the camera, or the one-bounce radiance. Now we have a new ray, r’, which starts at the intersection point of the original ray r with isect and goes in a direction that is sampled according to the BSDF of the isect primitive. We now check to see if this new ray intersects with something in the scene. We will call this new intersection isect’. Now we recursively call “at_least_one_bounce_radiance()” on r’ and isect’. We will add the return value of this recursive call to our estimate of one-bounce radiance for r and isect to get our estimate of multiple bounces of radiance. Just like before, at the beginning of this recursive call, we will call “one_bounce_radiance()” on r’ and isect’. This will model light that comes from the scene lights, bounces off of isect’ and goes in the direction of r’, which then bounces off of isect and goes in the direction of r all the way back into the camera. This is the second-bounce radiance. We perform this recursion multiple times to estimate multiple bounces of radiance. We set a maximum depth m which tells us when to terminate our recursion. Each time we create a ray for a recursive call, we decrement its “depth” attribute. Rays that have depth == 1 are rays that shouldn’t proceed recursively calling “at_least_one_bounce_radiance”. Instead, they should just return the value of “one_bounce_radiance()” since that function already “bounces” the ray one time when sampling the lights. We can zero-out the value of one_bounce_radiance() in the recursive call for rays with depth > 1 in order to only collect the light that bounces m times in the scene before reaching the camera. We can also add an early termination probably to simulate Russian Roulette and speed up rendering times. In each step of the recursion we have a probability prr of continuing to make the recursive call. If we do choose to continue, we divide the return value of our recursive call by an additional prr in order to make sure our estimate remains unbiased in expectation. 
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b2BunnyGlobal.png">
+                    <figcaption>CBbunny</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2SpheresGlobal.png">
+                    <figcaption>CBspheres_lambertian</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2DragonGlobal.png">
+                    <figcaption>dragon</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2BenchGlobal.png">
+                    <figcaption>bench</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2BlobGlobal.png">
+                    <figcaption>blob</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2Bunny2Global.png">
+                    <figcaption>bunny2</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b2WallEGlobal.png">
+                    <figcaption>wall-e</figcaption>
+                </figure>
+            </div>
+            <h3>Direct vs Indirect, 1024 Samples Per Pixel, 4 Light Rays, Max Depth of 5 for Indirect</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b3BunnyDirect.png">
+                    <figcaption>CBbunny Direct</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b3BunnyIndirect.png">
+                    <figcaption>CBbunny Indirect</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b3SpheresDirect.png">
+                    <figcaption>CBspheres_lambertian Direct</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b3SpheresIndirect.png">
+                    <figcaption>CBspheres_lambertian Indirect</figcaption>
+                </figure>
+            </div>
+            <h3>isAccumBounces Disabled, 1024 Samples Per Pixel, 4 Light Rays</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b4m0.png">
+                    <figcaption>Max Ray Depth 0</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b4m1.png">
+                    <figcaption>Max Ray Depth 1</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b4m2.png">
+                    <figcaption>Max Ray Depth 2</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b4m3.png">
+                    <figcaption>Max Ray Depth 3</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b4m4.png">
+                    <figcaption>Max Ray Depth 4</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b4m5.png">
+                    <figcaption>Max Ray Depth 5</figcaption>
+                </figure>
+            </div>
+            <p>
+                In the second bounce of light, we can see how the light on all the objects are reflected to have colored shadows and shading. The second bounce is also much dimmer than the first bounce because of the energy dissipating with each bounce, but still contributes to the overall final image. When we look at just bounce 1, we can see that there is no light bouncing off of the walls on the side which means it is not yet reflecting on the bunny. When we add the second bounce to the total sum of bounces, this adds the color that reflects onto the ceiling, bunny, and floors. In the next section, we can clearly see how the second bounce contributes to all of the colored lighting, and lighting in general. The third bounce of light is very similar to the second bounce, but is even dimmer since this additional bounce has even more energy dissipating. This still contributes to the final accumulated image by making the image brighter, and making the reflections of the colors, floor, and ceiling even stronger. With these bounces, we can see how all of the shadows become much softer, and also receive the color from the walls next to the given space. These bounces of light account for the light that bounces off different objects in the scene before bouncing off of the primary object into the camera. As such, we get the color of those objects reflected in the primary object, making it look richer. Specifically, the left side of the bunny looks red  because of light bouncing off the red wall, onto the bunny, and then back to the camera. The parts of the back wall that are close to the red and blue walls (i.e., the corners and edges made by the adjacency of the walls)take on the red and blue color more intensely. This reflects Lambert’s cosine law: rays that bounces off of red wall, then off the back wall, and then back to the camera are more aligned with the surface normal of the back wall for parts of the back wall that are closest to the edge between the back wall and the red wall.
+            </p>
+            <h3>isAccumBounces Enabled, 1024 Samples Per Pixel, 4 Light Rays</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b5m0.png">
+                    <figcaption>Max Ray Depth 0</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b5m1.png">
+                    <figcaption>Max Ray Depth 1</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b5m2.png">
+                    <figcaption>Max Ray Depth 2</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b5m3.png">
+                    <figcaption>Max Ray Depth 3</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b5m4.png">
+                    <figcaption>Max Ray Depth 4</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b5m5.png">
+                    <figcaption>Max Ray Depth 5</figcaption>
+                </figure>
+            </div>
+            <h3>Russian Roulette, 1024 Samples Per Pixel, 4 Light Rays</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b6m0.png">
+                    <figcaption>Max Ray Depth 0</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b6m1.png">
+                    <figcaption>Max Ray Depth 1</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b6m3.png">
+                    <figcaption>Max Ray Depth 2</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b6m3.png">
+                    <figcaption>Max Ray Depth 3</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b6m4.png">
+                    <figcaption>Max Ray Depth 4</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b6m100.png">
+                    <figcaption>Max Ray Depth 100</figcaption>
+                </figure>
+            </div>
+            <h3>Various Sample Per Pixel Rates, 4 Light Rays, 5 Bounces</h3>
+            <div class="image-container">
+                <figure>
+                    <img src="part4b7s1.png">
+                    <figcaption>1 Sample Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s2.png">
+                    <figcaption>2 Samples Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s4.png">
+                    <figcaption>4 Samples Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s8.png">
+                    <figcaption>8 Samples Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s16.png">
+                    <figcaption>16 Samples Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s64.png">
+                    <figcaption>64 Samples Per Pixel</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4b7s1024.png">
+                    <figcaption>1024 Samples Per Pixel</figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <section id="section5">
+            <h2>Part 5: Adaptive Sampling</h2>
+            <p>
+                We implement adaptive sampling motivated by the fact that certain pixels correspond to parts of the image that converge quicker than others. That means we can get away with sampling fewer rays for those parts without sacrificing much quality. In order to implement it, we keep track of the mean and variance of the illuminance for each pixel in the image after n ray samples (actually, we just keep track of a running sum of the illuminances and a running sum of the squared illuminances and then compute the mean and standard deviation from those). We want to make sure that the variance is sufficiently low to warrant that our estimated illuminance of the pixel is reasonably close to ground truth value with 95% confidence. Every samplesPerBatch number of samples, we check if I <= maxTolerance * mu, where I = 1.96 * sigma / (sqrt(n)) and n is the total number of ray samples we have performed for the pixel so far. If this condition is satisfied, we know that our pixel has converged and we can stop taking more samples. We only perform this check every samplesPerBatch number of samples in order to save computation. 
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="part5b2Bunny.png">
+                    <figcaption>CBbunny</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5b2Bunny_rate.png">
+                    <figcaption>CBbunny Rate</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5b2Spheres.png">
+                    <figcaption>CBspheres_lambertian</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5b2Spheres_rate.png">
+                    <figcaption>CBspheres_lambertian Rate</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5b2Wall-E.png">
+                    <figcaption>wall-e</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5b2Wall-E_rate.png">
+                    <figcaption>wall-e rate</figcaption>
+                </figure>
+            </div>
+        </section>
+        <section id="collab">
+            <h2>Collaboration</h2>
+            <p>
+                Because we are roommates, we were able to pair program very easily throughout the whole project. We would take turns programming on the same device, and bounce ideas off of each other. For the most part, we did all of the parts of the project equally together. There were sections where one partner understood the task at hand more than the other and took charge, but made sure we both understood what was happening by the end of it. With this, we were able to reduce bugs and figure out complex ideas more quickly. We did have issues however when we were both confused and didn't really know how to proceed so we both reinforced the wrong ideas occasionally. This led to us having to redo parts sometimes to fix issues that arose later on. Overall, we were able to learn a lot from each other, and help reduce bugs, especially when it came to technical bugs not related to the assignment such as assigning variables and incrementing. Most importantly, we were able to iron out any confusion either of us had by explaining to one another and reexplaining lecture slides that were relevant. We also learned it was best to work on things together since all of the parts tie closely together so it was crucial we understood every part of the project.
+            </p>
+        </section>
+
+    </main>
+</body>
 </html>
