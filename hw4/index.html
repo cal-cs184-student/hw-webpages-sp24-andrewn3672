@@ -56,7 +56,7 @@
                 <li><a href="#overview">Overview</a></li>
                 <li><a href="#section1">Part 1: Masses and Springs</a></li>
                 <li><a href="#section2">Part 2: Simulation via Numerical Integration</a></li>
-                <li><a href="#section3">Part 3: Handling Collisions with Other Objects</a></li>
+                <li><a href="#section3">Part 3: Handling Collisions With Other Objects</a></li>
                 <li><a href="#section4">Part 4: Handling Self-Collisions</a></li>
                 <li><a href="#section5">Part 5: Shaders</a></li>
                 <li><a href="#collab">Collaboration</a></li>
@@ -171,81 +171,29 @@
         </section>
 
         <section id="section3">
-            <h2>Part 3: Direct Illumination</h2>
+            <h2>Part 3: Handling Collisions With Other Objects</h2>
             <p>
-                For our implementation of direct lighting with uniform hemisphere sampling, we first calculate the point of intersection of the ray. We then obtain Wo which is the outgoing direction of the given ray which we want to convert to object space as well. Essentially, the opposite direction of the ray by taking the negative of it and converting it from world to object. We then create a total sum which is initialized to a 0 Vector3D called Lr. Once we have this information, we can loop through the total amount of ray samples specified. The first value we want to calculate in the loop is Wi. This is done by sampling from the hemisphere sampler, which samples a ray uniformly from every direction in the hemisphere. With this Wi, we want to convert this from object to world to be able to create a ray with this. We then create the new ray with the hit point and this value. We set the min_t of this new ray to be EPS_F to alleviate numerical precision issues that cause the ray to intersect where it started from. We then check this newly created ray to see if it intersects with anything else with bvh->intersect. If we do get a hit, we want to get the emission of the object it intersects with. This value is the Li value. At this point, we have all the values we need for the Monte Carlo estimator. We can get the f value of the passed-in intersection object by calling isect.bsdf->f(wo, wi). We multiply this by Li and the cosine, in which the cosine is just the z value of Wi. We iterate through all of the samples and add the f * Li * costheta to the total sum of Lr. At the end of all the samples, we divide this by the total number of samples. Additionally, we can move dividing by the pdf to the outside because everything is sampled with uniform probably of 1/2pi in the hemisphere. This is equivalent to multiplying the total sum by 2pi. This means the return value looks like (1/ N) * Lr * 2 * pi.       
+                Similar to the previous part when varying the ks values, we can see that with higher ks values, the cloth is more rigid and has fewer creases as seen in ks 50000. The lower the ks value, the more the cloth droops as seen in ks 500. When looking at the default ks of 5000, we can see there is a balance between the high and low ks values presented. Because the higher ks value makes the cloth more rigid and has fewer creases, the lowest point of the cloth is also higher than the rest. On the opposite end, the lowest ks valued cloth droops the lowest.
             </p>
-            <p>
-                Our implementation of direct lighting with importance sampling is very similar to hemisphere sampling, but we will sample the lights directly instead of randomly looking at everything uniformly. Additionally, if we know something is obstructing the view from the hit point and the light source, there is no need to cast this ray and save computation. We calculate the hit point and Wo in the same way as hemisphere sampling. We then initialize another vector3D of zeroes to be the final value we will return. We will then iterate through the lights in the scene. To determine how many times we want to sample each scene light, we check if the current scene light is a delta light or not. If it is, we set it to sample once, otherwise, we sample ns_area_light times. This is because if the scene light is a point light source, all of the samples will be the same, which saves time and computation. We then also want to have a running count with Lr again. We define three new variables which will be wi, distToLight, and pdf. We then pass these variables into the current scene light sampler to get Li and have the previous three variables assigned. We know the current hit point with the sampled wi is behind if the dot of wi and the normal of the isect is less than or equal to zero. If this value is greater than 0, that means we are not behind and we can create a new ray with the hit point and wi. Note, that the sampled wi is already in world coordinates so we do not need to convert it. We then set this new ray min_t to EPS_F and the max_t to be the distToLight - EPS_F to once again, alleviate the numerical precision issues. We then want to make sure our current hit point is not blocked by anything. We do this by calling bvh->intersect on this newly created ray, and if it returns true, that means we are blocked by something. Otherwise we are not and can calculate similar to hemisphere sampling. We get the f with isect.bsdf->f(wo, w2o * wi). We want to make sure we convert wi to object space. We also get the cosine value by converting wi to object coordinates and taking its z value. We then add f * Li * costheta /pdf to Lr. Once we are done with the samples in the current scene light, we add Lr /N to color. We repeat this for all of the scene lights then return the final color value.
-            </p>
+        
             <div class="image-container">
                 <figure>
-                    <img src="CBbunny_H_1_1.png">
-                    <figcaption>Hemisphere sampling, 1 camera ray per pixel, 1 sample per area light</figcaption>
+                    <img src="part3sphere5000.png">
+                    <figcaption>Default (KS 5000)</figcaption>
                 </figure>
                 <figure>
-                    <img src="CBbunny_H_16_8.png">
-                    <figcaption>Hemisphere sampling, 16 camera rays per pixel, 8 samples per area light</figcaption>
+                    <img src="part3sphere500.png">
+                    <figcaption>KS 500</figcaption>
                 </figure>
                 <figure>
-                    <img src="CBbunny_H_64_32.png">
-                    <figcaption>Hemisphere sampling, 64 camera rays per pixel, 32 samples per area light</figcaption>
+                    <img src="part3sphere50000.png">
+                    <figcaption>KS 50000</figcaption>
                 </figure>
-                <figure>
-                    <img src="CBbunny_Imp_1_1.png">
-                    <figcaption>Importance sampling, 1 camera ray per pixel, 1 sample per area light</figcaption>
-                </figure>
-                <figure>
-                    <img src="CBbunny_Imp_16_8.png">
-                    <figcaption>Importance sampling, 16 camera rays per pixel, 8 samples per area light</figcaption>
-                </figure>
-                <figure>
-                    <img src="CBbunny_Imp_64_32.png">
-                    <figcaption>Importance sampling, 64 camera rays per pixel, 32 samples per area light</figcaption>
-                </figure>
+              
             </div>
-            <p>
-                The images above show the difference between hemisphere sampling and importance sampling varied at different sampling rates.
-            </p>
-            <h3>Comparisons With Different Amount of Light Rays</h3>
-            <div class="image-container">
-                <figure>
-                    <img src="part3l1.png">
-                    <figcaption>1 light ray</figcaption>
-                </figure>
-                <figure>
-                    <img src="part3l4.png">
-                    <figcaption>4 light rays</figcaption>
-                </figure>
-                <figure>
-                    <img src="part3l16.png">
-                    <figcaption>16 light rays</figcaption>
-                </figure>
-                <figure>
-                    <img src="part3l64.png">
-                    <figcaption>64 light rays</figcaption>
-                </figure>
-                <figure>
-                    <img src="part3l1_2.png">
-                    <figcaption>1 light ray</figcaption>
-                </figure>
-                <figure>
-                    <img src="part3l4_2.png">
-                    <figcaption>4 light rays</figcaption>
-                </figure>
-                <figure>
-                    <img src="part3l16_2.png">
-                    <figcaption>16 light rays</figcaption>
-                </figure>
-                <figure>
-                    <img src="part3l64_2.png">
-                    <figcaption>64 light rays</figcaption>
-                </figure>
-            </div>
-            <h3>Comparisons Between Hemisphere Sampling and Importance Sampling</h3>
-            <p>
-                When looking at the qualitative differences between hemisphere sampling and importance sampling, it is very clear that importance sampling converges to the true image much faster. When we set both to have a sampling rate of 1 and 1 light ray, importance sampling still clearly shows the bunny along with the colors and shadows of the room. In hemisphere sampling, however, it mainly looks like a bunch of random white dots, with the exception of the shadow of the bunny. When looking at 16 samples and 8 rays, importance sampling already looks extremely good, while hemisphere sampling has clear artifacting with dots of black still scattered around. Lastly, we have a sampling rate of 64 with 32 light rays. We can see that with importance sampling, the rendered image looks near perfect (notice the shadows compared to the previous rates). In comparison, although hemisphere sampling looks much better than its predecessors, still has artifacting when compared to importance sampling. The scene is still darker and there is still a black fuzz on the overall image. In terms of performance, importance sampling ran much faster than hemisphere sampling. This is due largely because of importance sampling not needing to cast rays if we know the light is behind the surface at the hit point or is a point light source and only needing to be sampled once hence saving computation. In general, importance sampling vastly outperforms hemisphere sampling and needs much fewer samples to have higher-quality images.
-            </p> 
+      
+            <h3>Cloth on Plane</h3>
+            <img src="part3planenormal.png" class="solo-image">
         </section>
 
         <section id="section4">
