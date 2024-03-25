@@ -203,7 +203,7 @@
         <section id="section4">
             <h2>Part 4: Handling Self-Collisions</h2>
             <p>
-                tbd
+                In this part of the project, we added self-collisions to the cloth so that the cloth would fold on top of itself rather than clipping through itself. To do this, we began by building a spatial hash map so that we can compare point masses that are close to each other rather than checking a point mass with every other point mass as this is inefficient. We do this by simply defining a hash function to describe where the point mass is, then iterate through all the point masses and insert them into the spatial hash map. To check for self-collisions, we grab the vector of other points within the spatial hash-map using the current point masses hash values and checking if the candidate point mass is within range of our current point mass. We do this by taking the distance of the current position and the position of the candidate point, and checking if the norm is less than or equal to 2 * thickness. If it is, We compute the correction to be (2*thickness - distance.norm()) * distance.unit(). We add this to a total correction vector that includes all of the candidates that are within range. Once we iterate through all of the candidates, we divide the total by the number of candidates we had corrections with and divide by the simulation_steps. We then add this correction to our point mass's current position. When iterating through candidates, we also make sure we don’t try to calculate a correction with ourselves.
             </p>
             <div class="image-container">
                 <figure>
@@ -217,6 +217,40 @@
                 </figure>
                 <figure>
                     <img src="part4b14.png">
+                </figure>
+            </div>
+            <p>
+                When varying the density of the cloth, we can see the properties of how the cloth folds onto itself. When comparing the lower density to the default, we can see that it has fewer folds on itself, but the folds themselves are much larger. On the opposite end, the largest density has many more folds on itself, but the folds themselves are much smaller. The default cloth is the in-between of the two extremes where it has more folds than the density of 1, but less than the density of 100. The folds are also smaller than the density of 1 but larger than the density of 100. Logically, this makes a lot of sense since when you drop a piece of paper, it has a very small density and doesn’t fold onto itself at all and instead falls flat.
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="part4density15.png">
+                    <figcaption>Default (Density 15)</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4density1.png">
+                    <figcaption>Density 1</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4density100.png">
+                    <figcaption>Density 100</figcaption>
+                </figure>
+            </div>
+            <p>
+                At different levels of ks values, we also see how it changes the amount of folds created as the cloth falls, but also changes the size of the folds. When looking at smaller ks values, we can see that there are many more folds as it falls on itself, but the folds are smaller when comparing them to the default ks value. With larger ks values, we can see there are much fewer folds, but the folds themselves as they form are much larger when the cloth falls on itself. You can also describe them as being much more bendy and wavy in terms of how the folds look because of the stronger springs. To summarize, a larger ks value leads to fewer folds, but the folds are much larger. Inversely, the smaller ks value has many more folds, but the folds themselves are much smaller.
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="part4ks5000.png">
+                    <figcaption>Default (KS 5000)</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4ks100.png">
+                    <figcaption>KS 100</figcaption>
+                </figure>
+                <figure>
+                    <img src="part4ks100000.png">
+                    <figcaption>KS 100000</figcaption>
                 </figure>
             </div>
             
