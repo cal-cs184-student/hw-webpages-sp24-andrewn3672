@@ -201,174 +201,25 @@
         </section>
 
         <section id="section4">
-            <h2>Part 4: Global Illumination</h2>
+            <h2>Part 4: Handling Self-Collisions</h2>
             <p>
-                Given an incoming ray from the camera and a primitive it intersects, we want to estimate the amount of light that gets sent back in the direction of that ray after multiple bounces. We do this through recursively calling the function “at_least_one_bounce_radiance().” This function takes in an incoming ray and the primitive that it intersects. It first calls “one_bounce_radiance()”, which takes in this ray and primitive and importance samples the light sources in the scene. This will give an estimate of the light that bounces off of the primitive once and returns in the direction of the original incoming ray in the camera. Now we want to get the light that comes from multiple bounces. To do this, we importance sample a direction according to the BSDF of the primitive the original ray intersects. If the primitive models a material that is glossy, we might imagine sampling a direction whose angle with respect to the surface of the primitive is close to the angle of incidence of the ray (in order to capture the fact that light coming from those general directions will be weighted highly by the reflection function “f”). However, because we are only modeling diffuse materials, we instead simply perform cosine-weighted hemisphere sampling. We weight our sampling by the cosine of the angle with respect to the normal because we want to have a higher likelihood of sampling from directions close to the surface normal (because these are the directions that will result in the most radiant intensity according to Lambert’s cosine law). This sampled direction, referred hereafter as wi, will serve as the direction of the ray that we will recursively call “at_least_one_bounce_radiance()” on. In order to create this ray, we first rotate wi by multiplying it by the object-to-world matrix for the particular primitive the original ray intersected. This is because wi was sampled in a coordinate space such that the z-axis corresponds to the normal vector of the intersected primitive, and we want to make sure that our new ray is in world space. We take the origin of our new ray as p, which is the intersection point of the original ray with the primitive. Effectively, we started with an original ray coming from the camera, r, and the primitive it intersected, isect. For this incoming ray direction and intersection, we importance sampled all the lights in the scene. This step simulates the light that comes from those lights, bounces off the primitive once, and goes directly to the camera, or the one-bounce radiance. Now we have a new ray, r’, which starts at the intersection point of the original ray r with isect and goes in a direction that is sampled according to the BSDF of the isect primitive. We now check to see if this new ray intersects with something in the scene. We will call this new intersection isect’. Now we recursively call “at_least_one_bounce_radiance()” on r’ and isect’. We will add the return value of this recursive call to our estimate of one-bounce radiance for r and isect to get our estimate of multiple bounces of radiance. Just like before, at the beginning of this recursive call, we will call “one_bounce_radiance()” on r’ and isect’. This will model light that comes from the scene lights, bounces off of isect’ and goes in the direction of r’, which then bounces off of isect and goes in the direction of r all the way back into the camera. This is the second-bounce radiance. We perform this recursion multiple times to estimate multiple bounces of radiance. We set a maximum depth m which tells us when to terminate our recursion. Each time we create a ray for a recursive call, we decrement its “depth” attribute. Rays that have depth == 1 are rays that shouldn’t proceed recursively calling “at_least_one_bounce_radiance”. Instead, they should just return the value of “one_bounce_radiance()” since that function already “bounces” the ray one time when sampling the lights. We can zero-out the value of one_bounce_radiance() in the recursive call for rays with depth > 1 in order to only collect the light that bounces m times in the scene before reaching the camera. We can also add an early termination probably to simulate Russian Roulette and speed up rendering times. In each step of the recursion we have a probability prr of continuing to make the recursive call. If we do choose to continue, we divide the return value of our recursive call by an additional prr in order to make sure our estimate remains unbiased in expectation. 
+                tbd
             </p>
             <div class="image-container">
                 <figure>
-                    <img src="part4b2BunnyGlobal.png">
-                    <figcaption>CBbunny</figcaption>
+                    <img src="part4b11.png">
                 </figure>
                 <figure>
-                    <img src="part4b2SpheresGlobal.png">
-                    <figcaption>CBspheres_lambertian</figcaption>
+                    <img src="part4b12.png">
                 </figure>
                 <figure>
-                    <img src="part4b2DragonGlobal.png">
-                    <figcaption>dragon</figcaption>
+                    <img src="part4b13.png">
                 </figure>
                 <figure>
-                    <img src="part4b2BenchGlobal.png">
-                    <figcaption>bench</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b2BlobGlobal.png">
-                    <figcaption>blob</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b2Bunny2Global.png">
-                    <figcaption>bunny2</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b2WallEGlobal.png">
-                    <figcaption>wall-e</figcaption>
+                    <img src="part4b14.png">
                 </figure>
             </div>
-            <h3>Direct vs Indirect, 1024 Samples Per Pixel, 4 Light Rays, Max Depth of 5 for Indirect</h3>
-            <div class="image-container">
-                <figure>
-                    <img src="part4b3BunnyDirect.png">
-                    <figcaption>CBbunny Direct</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b3BunnyIndirect.png">
-                    <figcaption>CBbunny Indirect</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b3SpheresDirect.png">
-                    <figcaption>CBspheres_lambertian Direct</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b3SpheresIndirect.png">
-                    <figcaption>CBspheres_lambertian Indirect</figcaption>
-                </figure>
-            </div>
-            <h3>isAccumBounces Disabled, 1024 Samples Per Pixel, 4 Light Rays</h3>
-            <div class="image-container">
-                <figure>
-                    <img src="part4b4m0.png">
-                    <figcaption>Max Ray Depth 0</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b4m1.png">
-                    <figcaption>Max Ray Depth 1</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b4m2.png">
-                    <figcaption>Max Ray Depth 2</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b4m3.png">
-                    <figcaption>Max Ray Depth 3</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b4m4.png">
-                    <figcaption>Max Ray Depth 4</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b4m5.png">
-                    <figcaption>Max Ray Depth 5</figcaption>
-                </figure>
-            </div>
-            <p>
-                In the second bounce of light, we can see how the light on all the objects are reflected to have colored shadows and shading. The second bounce is also much dimmer than the first bounce because of the energy dissipating with each bounce, but still contributes to the overall final image. When we look at just bounce 1, we can see that there is no light bouncing off of the walls on the side which means it is not yet reflecting on the bunny. When we add the second bounce to the total sum of bounces, this adds the color that reflects onto the ceiling, bunny, and floors. In the next section, we can clearly see how the second bounce contributes to all of the colored lighting, and lighting in general. The third bounce of light is very similar to the second bounce, but is even dimmer since this additional bounce has even more energy dissipating. This still contributes to the final accumulated image by making the image brighter, and making the reflections of the colors, floor, and ceiling even stronger. With these bounces, we can see how all of the shadows become much softer, and also receive the color from the walls next to the given space. These bounces of light account for the light that bounces off different objects in the scene before bouncing off of the primary object into the camera. As such, we get the color of those objects reflected in the primary object, making it look richer. Specifically, the left side of the bunny looks red  because of light bouncing off the red wall, onto the bunny, and then back to the camera. The parts of the back wall that are close to the red and blue walls (i.e., the corners and edges made by the adjacency of the walls)take on the red and blue color more intensely. This reflects Lambert’s cosine law: rays that bounces off of red wall, then off the back wall, and then back to the camera are more aligned with the surface normal of the back wall for parts of the back wall that are closest to the edge between the back wall and the red wall.
-            </p>
-            <h3>isAccumBounces Enabled, 1024 Samples Per Pixel, 4 Light Rays</h3>
-            <div class="image-container">
-                <figure>
-                    <img src="part4b5m0.png">
-                    <figcaption>Max Ray Depth 0</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b5m1.png">
-                    <figcaption>Max Ray Depth 1</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b5m2.png">
-                    <figcaption>Max Ray Depth 2</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b5m3.png">
-                    <figcaption>Max Ray Depth 3</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b5m4.png">
-                    <figcaption>Max Ray Depth 4</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b5m5.png">
-                    <figcaption>Max Ray Depth 5</figcaption>
-                </figure>
-            </div>
-            <h3>Russian Roulette, 1024 Samples Per Pixel, 4 Light Rays</h3>
-            <div class="image-container">
-                <figure>
-                    <img src="part4b6m0.png">
-                    <figcaption>Max Ray Depth 0</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b6m1.png">
-                    <figcaption>Max Ray Depth 1</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b6m3.png">
-                    <figcaption>Max Ray Depth 2</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b6m3.png">
-                    <figcaption>Max Ray Depth 3</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b6m4.png">
-                    <figcaption>Max Ray Depth 4</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b6m100.png">
-                    <figcaption>Max Ray Depth 100</figcaption>
-                </figure>
-            </div>
-            <h3>Various Sample Per Pixel Rates, 4 Light Rays, 5 Bounces</h3>
-            <div class="image-container">
-                <figure>
-                    <img src="part4b7s1.png">
-                    <figcaption>1 Sample Per Pixel</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b7s2.png">
-                    <figcaption>2 Samples Per Pixel</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b7s4.png">
-                    <figcaption>4 Samples Per Pixel</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b7s8.png">
-                    <figcaption>8 Samples Per Pixel</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b7s16.png">
-                    <figcaption>16 Samples Per Pixel</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b7s64.png">
-                    <figcaption>64 Samples Per Pixel</figcaption>
-                </figure>
-                <figure>
-                    <img src="part4b7s1024.png">
-                    <figcaption>1024 Samples Per Pixel</figcaption>
-                </figure>
-            </div>
+            
         </section>
 
         <section id="section5">
