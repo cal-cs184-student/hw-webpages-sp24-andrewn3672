@@ -59,7 +59,6 @@
                 <li><a href="#section3">Part 3: Handling Collisions With Other Objects</a></li>
                 <li><a href="#section4">Part 4: Handling Self-Collisions</a></li>
                 <li><a href="#section5">Part 5: Shaders</a></li>
-                <li><a href="#collab">Collaboration</a></li>
             </ul>
         </nav>
     </header>
@@ -260,42 +259,132 @@
         </section>
 
         <section id="section5">
-            <h2>Part 5: Adaptive Sampling</h2>
+            <h2>Part 5: Shaders</h2>
             <p>
-                We implement adaptive sampling motivated by the fact that certain pixels correspond to parts of the image that converge quicker than others. That means we can get away with sampling fewer rays for those parts without sacrificing much quality. In order to implement it, we keep track of the mean and variance of the illuminance for each pixel in the image after n ray samples (actually, we just keep track of a running sum of the illuminances and a running sum of the squared illuminances and then compute the mean and standard deviation from those). We want to make sure that the variance is sufficiently low to warrant that our estimated illuminance of the pixel is reasonably close to ground truth value with 95% confidence. Every samplesPerBatch number of samples, we check if I <= maxTolerance * mu, where I = 1.96 * sigma / (sqrt(n)) and n is the total number of ray samples we have performed for the pixel so far. If this condition is satisfied, we know that our pixel has converged and we can stop taking more samples. We only perform this check every samplesPerBatch number of samples in order to save computation. 
+                tbd
             </p>
             <div class="image-container">
                 <figure>
-                    <img src="part5b2Bunny.png">
-                    <figcaption>CBbunny</figcaption>
+                    <img src="part5ambiance.png">
+                    <figcaption>Ambiance</figcaption>
                 </figure>
                 <figure>
-                    <img src="part5b2Bunny_rate.png">
-                    <figcaption>CBbunny Rate</figcaption>
+                    <img src="part5diffuse.png">
+                    <figcaption>Diffuse</figcaption>
                 </figure>
                 <figure>
-                    <img src="part5b2Spheres.png">
-                    <figcaption>CBspheres_lambertian</figcaption>
+                    <img src="part5specular.png">
+                    <figcaption>Specular</figcaption>
                 </figure>
                 <figure>
-                    <img src="part5b2Spheres_rate.png">
-                    <figcaption>CBspheres_lambertian Rate</figcaption>
+                    <img src="part5phong.png">
+                    <figcaption>Full Blinn Phong</figcaption>
                 </figure>
                 <figure>
-                    <img src="part5b2Wall-E.png">
-                    <figcaption>wall-e</figcaption>
-                </figure>
-                <figure>
-                    <img src="part5b2Wall-E_rate.png">
-                    <figcaption>wall-e rate</figcaption>
+                    <img src="part5phongblue.png">
+                    <figcaption>Blue Cloth</figcaption>
                 </figure>
             </div>
-        </section>
-        <section id="collab">
-            <h2>Collaboration</h2>
+
             <p>
-                Because we are roommates, we were able to pair program very easily throughout the whole project. We would take turns programming on the same device, and bounce ideas off of each other. For the most part, we did all of the parts of the project equally together. There were sections where one partner understood the task at hand more than the other and took charge, but made sure we both understood what was happening by the end of it. With this, we were able to reduce bugs and figure out complex ideas more quickly. We did have issues however when we were both confused and didn't really know how to proceed so we both reinforced the wrong ideas occasionally. This led to us having to redo parts sometimes to fix issues that arose later on. Overall, we were able to learn a lot from each other, and help reduce bugs, especially when it came to technical bugs not related to the assignment such as assigning variables and incrementing. Most importantly, we were able to iron out any confusion either of us had by explaining to one another and reexplaining lecture slides that were relevant. We also learned it was best to work on things together since all of the parts tie closely together so it was crucial we understood every part of the project.
+                Below is using the texture shading with a Squirtle as the texture.
             </p>
+            <div class="image-container">
+                <figure>
+                    <img src="part5texturestart.png">
+                    <figcaption>Start</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5texturerest.png">
+                    <figcaption>Rest</figcaption>
+                </figure>
+            </div>
+
+            <p>
+                tbd
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="part5bumpstart.png">
+                    <figcaption>Start</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5bumpsphere.png">
+                    <figcaption>Sphere</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5bumprest.png">
+                    <figcaption>Rest</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5displacestart.png">
+                    <figcaption>Start</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5displacesphere.png">
+                    <figcaption>Sphere</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5displacerest.png">
+                    <figcaption>Rest</figcaption>
+                </figure>
+            </div>
+
+            <p>
+                tbd
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="part5bumpsphere16.png">
+                    <figcaption>Bump -o 16 -a 16</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5displacesphere16.png">
+                    <figcaption>Displacement -o 16 -a 16</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5bumprest16.png">
+                    <figcaption>Bump -o 16 -a 16</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5displacerest16.png">
+                    <figcaption>Displacement -o 16 -a 16</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5bumpsphere128.png">
+                    <figcaption>Bump -o 128 -a 128</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5displacesphere128.png">
+                    <figcaption>Displacement -o 128 -a 128</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5bumprest128.png">
+                    <figcaption>Bump -o 128 -a 128</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5displacerest128.png">
+                    <figcaption>Displacement -o 128 -a 128</figcaption>
+                </figure>
+            </div>
+
+            <p>
+                Below is using the texture mirror shading.
+            </p>
+            <div class="image-container">
+                <figure>
+                    <img src="part5mirrorstart.png">
+                    <figcaption>Start</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5mirrorsphere.png">
+                    <figcaption>Sphere</figcaption>
+                </figure>
+                <figure>
+                    <img src="part5mirrorrest.png">
+                    <figcaption>Rest</figcaption>
+                </figure>
+            </div>
         </section>
 
     </main>
