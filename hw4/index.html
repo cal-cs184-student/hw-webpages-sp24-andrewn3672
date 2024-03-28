@@ -261,7 +261,7 @@
         <section id="section5">
             <h2>Part 5: Shaders</h2>
             <p>
-                tbd
+                Shader programs operate on the geometry and color of objects during rendering. In this project we worked with vertex and fragment shaders. Vertex shaders operate on each vertex of the primitives in the scene. They set the final, screen-space location of each vertex in the scene being rendered. These screen-space locations are what the GPU triangle rasterizer uses when rasterizing all the primitives onto screen-space. The rasterizer generates fragments, which each can be thought of as a collection of samples and their corresponding data used to calculate the final color value for a particular pixel. The number of fragments created depends on the screen resolution, since one fragment is created for each pixel in the screen buffer. Each fragment collects values barycentrically-interpolated from the per-vertex operations done in the vertex shader. That is, the vertex shader assigns things like uv-texture coordinates, normal vectors, and new positions for each vertex; then the rasterizer generates a fragment for each pixel in the screen buffer and uses barycentric interpolation to collect interpolated uv-texture coordinates, normal vectors, and position for each fragment according to the triangle it lies within; these are the values that are passed into the fragment shader, which operates on each fragment individually.
             </p>
             <h3>Blinn Phong and Diffuse Shading</h3>
             <p>
@@ -312,27 +312,27 @@
             <div class="image-container">
                 <figure>
                     <img src="part5bumpstart.png">
-                    <figcaption>Start</figcaption>
+                    <figcaption>Bump Start</figcaption>
                 </figure>
                 <figure>
                     <img src="part5bumpsphere.png">
-                    <figcaption>Sphere</figcaption>
+                    <figcaption>Bump Sphere</figcaption>
                 </figure>
                 <figure>
                     <img src="part5bumprest.png">
-                    <figcaption>Rest</figcaption>
+                    <figcaption>Bump Rest</figcaption>
                 </figure>
                 <figure>
                     <img src="part5displacestart.png">
-                    <figcaption>Start</figcaption>
+                    <figcaption>Displacement Start</figcaption>
                 </figure>
                 <figure>
                     <img src="part5displacesphere.png">
-                    <figcaption>Sphere</figcaption>
+                    <figcaption>Displacement Sphere</figcaption>
                 </figure>
                 <figure>
                     <img src="part5displacerest.png">
-                    <figcaption>Rest</figcaption>
+                    <figcaption>Displacement Rest</figcaption>
                 </figure>
             </div>
 
